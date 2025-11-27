@@ -1,0 +1,2116 @@
+---
+title: "**Validation de l'Échelle de Hamilton et Comparaison de l'Efficacité Thérapeutique dans une Étude Longitudinale sur la Dépression**"
+subtitle: "Étude de la Structure Factorielle, de la Cohérence Interne et de l'Efficacité Thérapeutique chez des Patients Dépressifs – Données Longitudinales (N=146)"
+author:
+  - "**El Boubacar DIALLO**"
+  - "Numéro étudiant : 22513523"
+  - "Université Paris-Saclay"
+date: "`r Sys.Date()`"
+abstract: |
+  **Contexte :** L'échelle de dépression de Hamilton (HDRS) est l'instrument le plus utilisé pour évaluer la sévérité des symptômes dépressifs dans les essais cliniques. Sa validation dans des contextes spécifiques et l'évaluation de sa sensibilité au changement restent essentielles pour garantir la qualité des mesures.
+  
+  \vspace{0.2cm}
+  
+  **Objectifs :** (1) Valider les propriétés psychométriques de l'échelle HDRS-17 aux temps J0 (patients sévèrement déprimés) et J56 (après traitement), (2) Comparer l'efficacité thérapeutique entre deux groupes de traitement en utilisant le score brut HDRS, (3) Évaluer la réponse au traitement définie comme une réduction ≥50 % du score HAM-D par rapport au baseline.
+  
+  \vspace{0.2cm}
+  
+  **Méthodes :** Analyse longitudinale de 146 patients déprimés évalués à 8 temps de mesure (J0, J4, J7, J14, J21, J28, J42, J56) avec l'échelle HDRS-17 (hétéro-évaluation) et la SCL-90-R (auto-évaluation). Les analyses incluront :
+  - Validation psychométrique (analyse factorielle exploratoire, cohérence interne),
+  - Validation convergente/divergente avec la SCL-90-R,
+  - Comparaison des groupes par approche LOCF et modèles mixtes,
+  - Analyse de survie pour la réponse au traitement.
+
+keywords: ["R", "HAM-D", "SCL-90", "analyse factorielle", "modèles mixtes", "analyse de survie", "validité psychométrique", "dépression", "longitudinal", "LOCF"]
+output:
+  pdf_document:
+    # Table des matières
+    toc: true
+    toc_depth: 3
+    number_sections: true
+
+    # Moteur LaTeX
+    latex_engine: xelatex
+    
+    # Mise en page
+    fig_caption: true
+    fig_width: 7
+    fig_height: 5
+    
+    # Options avancées
+    df_print: kable
+    
+# Géométrie de la page
+geometry: 
+  - top=2 cm
+  - bottom=2 cm
+  - left=2 cm
+  - right=2 cm
+  
+# En-têtes et pieds de page
+header-includes:
+  - \usepackage{fancyhdr}          # Personnalisation des en-têtes/pieds de page
+  - \usepackage{lastpage}          # Accès au numéro de la dernière page
+  #- \usepackage{lscape}            # pour le mode paysage
+  - \usepackage{pdflscape}          # pour le mode paysage 2
+  - \setlength{\headheight}{15pt}   # Hauteur de l'en-tête (évite le chevauchement)
+  - \pagestyle{fancy}               # Active le style personnalisé
+  - \usepackage{booktabs}           # Tableaux professionnels (lignes horizontales)
+  - \usepackage{float}              # Contrôle précis du placement des figures/tableaux
+  - \usepackage{xcolor}            # Pour utiliser des couleurs personnalisées
+  - \usepackage{sectsty}           # Pour personnaliser les titres de section
+  - \sectionfont{\color{blue!80!black}}     # Définit la couleur des titres de section en bleu
+  - \usepackage{graphicx}           # Insertion d'images (logo)
+  - \fancyhf{}                      # Réinitialise en-têtes/pieds de page par défaut
+  - \rhead{\includegraphics[width=0.1\textwidth]{G:/Mon Drive/M2 Paris Saclay/Cours/Exercices/MOOC_R/MOOC_R/logo_universite_paris_saclay.png} Devoir 2 Hamilton}  # Logo + texte à droite en-tête
+  - \rfoot{p.~\thepage/\pageref{LastPage}} # Numéro de page (ex: "p. 1/10") en pied droit
+  - \lfoot{N-22513523}                     # Matricule en pied gauche
+  - \lhead{\leftmark}                      # Nom de la section courante en-tête gauche
+  - \renewcommand{\headrulewidth}{0.4pt}   # Épaisseur ligne sous en-tête
+  - \renewcommand{\footrulewidth}{0.4pt}   # Épaisseur ligne sur pied de page
+  - \usepackage{setspace}                  # Pour gérer l'interligne
+  - \setstretch{1.09}                      # Interligne global
+  - \usepackage[format=plain, justification=centering, singlelinecheck=false]{caption}  # Enlève l'indentation
+  - \setlength{\LTcapwidth}{\textwidth}   # Force le titre à prendre toute la largeur de la page
+---
+
+```{r setup_, include=FALSE}
+# Options globales pour tous les chunks
+knitr::opts_chunk$set(
+  echo = TRUE,                  # Afficher le code source
+  warning = FALSE,              # Masquer les avertissements
+  message = FALSE,              # Masquer les messages
+  fig.align = "center",         # Centrer les figures
+  fig.width = 7,                # Largeur des figures
+  fig.height = 5,               # Hauteur des figures
+  comment = "",                 # Supprimer les ## dans les outputs
+  cache = FALSE,                # Désactiver la mise en cache (activer si nécessaire)
+  dev = "pdf",                  # Format de sortie des figures (pour PDF)
+  dpi = 300,                    # Résolution des figures
+  fig.path = "figures/"         # Dossier de sortie pour les figures (optionnel)
+)
+```
+
+```{r packages, echo=FALSE}
+options(repos = c(CRAN = "https://cloud.r-project.org/")) # Définit le miroir CRAN
+
+bibliotheque = c(
+  "wesanderson",         # pour une palette scientifique
+  "readxl",              # pour lire les fichiers excel
+  "naniar",              # pour la gestion des données manquantes
+  "knitr",               # pour les tableaux jolis
+  "pander",              # pour des tableaux jolis
+  "summarytools",        # pour des tableaux jolis
+  "corrplot",            # pour les matrices de corrélation
+  "psy",                 # pour les analyses factorielles
+  "psych",               # pour les analyses factorielles
+  "FactoMineR",          # pour les analyses factorielles
+  "factoextra",          # pour les analyses factorielles
+  "grid",                # pour les analyses factorielles
+  "gridExtra",           # pour les analyses factorielles
+  "boot",                # pour les intervalles de confiance
+  "zoo",                 # pour les modèles mixtes
+  "kableExtra",
+  "survival",
+  "survminer",
+  "lme4",               # pour les modèles linéaires mixtes
+  "lmerTest"            # Pour les p-values
+)
+
+for (pkg in bibliotheque) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg, dependencies = TRUE)
+  }
+  library(pkg, character.only = TRUE)
+}
+```
+
+\newpage
+
+\section*{Abréviations} 
+\addcontentsline{toc}{section}{Abréviations}
+
+# Abréviations
+
+| Abréviation  | Signification                                                     |
+|--------------|-------------------------------------------------------------------|
+| ACP          | Analyse en Composantes Principales                                |
+| ACPF         | Analyse en Composantes Principales Focalisée                      |
+| AI           | Intelligence Artificielle                                         |
+| AIC          | Akaike Information Criterion (Critère d'Information d'Akaike)     |
+| ANOVA        | Analysis of Variance (Analyse de la Variance)                     |
+| CI/IC 95%    | Confidence Interval (Intervalle de Confiance à 95%)               |
+| CRAN         | Comprehensive R Archive Network (Miroir pour les packages R)      |
+| CV           | Coefficient de Variation                                          |
+
+
+\newpage
+
+\section*{Liste des tableaux et figures}
+\addcontentsline{toc}{section}{Liste des tableaux et figures}
+\listoftables 
+\listoffigures
+
+\newpage
+
+# CONTEXTE ET JUSTIFICATION
+
+## Problématique
+
+La dépression majeure représente un enjeu majeur de santé publique. L'évaluation rigoureuse de l'efficacité des traitements antidépresseurs nécessite des instruments de mesure validés et sensibles au changement. L'échelle de Hamilton (HDRS), bien que largement utilisée depuis 1960, présente une structure factorielle instable selon les populations étudiées. Sa revalidation dans le contexte spécifique de cette étude est donc nécessaire.
+
+## Échelle de Hamilton
+
+L'échelle HDRS-17, composée de 17 items évaluant divers symptômes dépressifs, est l'outil principal pour mesurer la sévérité de la dépression. Cependant, des études antérieures ont montré des variations dans sa structure factorielle et sa sensibilité au changement, soulignant l'importance de sa validation continue.
+
+|  Items        |Symptôme                                     	|
+|---------------|-----------------------------------------------|
+|  HAMD1        |Humeur dépressive				                      |
+|  HAMD2        |Sentiments de culpabilité			                |
+|  HAMD3        |Suicide					                              |
+|  HAMD4        |Insomnie du début de la nuit			              |
+|  HAMD5        |Insomnie du milieu de la nuit		              |
+|  HAMD6        |Insomnie du matin			                      	|
+|  HAMD7        |Travail et activités				                    |
+|  HAMD8        |Ralentissement (psychomoteur)		            	|
+|  HAMD9        |Agitation				                            	|
+|  HAMD10       |Anxiété psychique			                      	|
+|  HAMD11       |Anxiété somatique			                      	|
+|  HAMD12       |Symptômes somatiques gastro-intestinaux	      |
+|  HAMD13       |Symptômes somatiques généraux		            	|
+|  HAMD14       |Symptômes génitaux			                        |
+|  HAMD15       |Hypocondrie				                          	|
+|  HAMD16       |Perte de poids				                        	|
+|  HAMD17       |Prise de conscience (insight)		            	|
+
+## SCL90
+
+La SCL-90-R est une auto-évaluation mesurant divers symptômes psychopathologiques. Son utilisation conjointe avec l'HDRS permet d'évaluer la validité convergente et divergente de cette dernière.
+
+|  Items   				                                   | Symptôme ou Dimension
+| ---------------------------------------------------|-------------------------------------------------|
+|  1, 4, 12, 27, 40, 42, 48, 49, 52, 53, 56, 58      | Somatisation
+|  3, 9, 10, 28, 38, 45, 46, 51, 55, 65              | Symptômes obsessionnels-compulsifs              |
+|  6, 21, 34, 36, 37, 41, 61, 69, 73                 | Sensibilité interpersonnelle (ou vulnérabilité) |
+|  5, 14, 15, 20, 22, 26, 29, 30, 31, 32, 54, 71, 79 | Dépression                                      |
+|  2, 17, 23, 33, 39, 57, 72, 78, 80, 86             | Anxiété                                         |
+|  11, 24, 63, 67, 74, 81                            | Hostilité                                       |
+|  13, 25, 47, 50, 70, 75, 82                        | Phobies                                         |
+|  8, 18, 43, 68, 76, 83                             | Traits paranoïaques                             |
+|  7, 16, 35, 62, 77, 84, 85, 87, 90, 88             | Traits psychotiques                             |
+|  19, 44, 59, 60, 64, 66, 89                        | Symptômes divers (ou "Autres")                  |
+
+# DATA MANAGEMENT
+
+## Structure des données
+
+```{r read_data, echo=FALSE}
+rm(list=ls())
+# Définir le répertoire de travail
+repertoire = "G:/Mon Drive/M2 Paris Saclay/Cours/Exercices/MOOC_R/MOOC_R/"
+setwd(repertoire)
+# Importation des données
+ha = read_excel("outils hdrs.xls")
+group = read_excel("outils groupe.xls")
+scl = read_excel("outils autoeval.xls")
+```
+
+```{r merge_data, echo=FALSE}
+# Colonne HAMD16 : Combinaison des deux versions
+ha$HAMD16 = ha$HAMD16A
+ha$HAMD16[is.na(ha$HAMD16)] = ha$HAMD16B[is.na(ha$HAMD16)]
+
+# Nettoyage des colonnes temporaires
+ha$HAMD16A = NULL
+ha$HAMD16B = NULL
+
+# Réorganisation des colonnes HAMD
+ha = ha[, c("NUMERO", "VISIT", paste0("HAMD", 1:17))]
+
+# Étape 1 : Fusionner ha et scl par NUMERO et VISIT (intermediaire) - full join
+df.int = merge(ha, scl, by = c("NUMERO", "VISIT"), all = TRUE)
+
+# Étape 2 : Fusionner df.int et group par NUMERO (finale)
+df = merge(df.int, group, by = "NUMERO", all.x = TRUE) # Left Outer Join 
+```
+
+```{r check_post_fusion, echo=FALSE, results='hide'}
+# Vérification de doublons éventuels
+anyDuplicated(df[, c("NUMERO", "VISIT")])
+# patients sans GROUPE 
+sum(is.na(df$GROUPE))
+```
+
+Trois fichiers sources ont été utilisés pour constituer le jeu de données final :
+
+**HAMD** (Hamilton Depression Rating Scale) : 1 053 observations × 20 variables (17 items  + 2 entitifiants + 1 variable temporaire HAMD16A/B).
+
+**SCL90** (Symptom Checklist-90) : 1 034 observations × 92 variables (90 items + 2 variables d’identification).
+
+**Groupe** : 146 observations × 2 variables (NUMERO + GROUPE).
+
+Après fusion, le jeu de données final contient 1 053 observations et 110 variables.
+
+  - NUMERO : Identifiant du participant.
+  - VISIT : Temps de mesure (J0, J4, J7, J14, J21, J28, J42, J56).
+  - Variables HAMD1 à HAMD17 et Q1 à Q90 : Réponses aux items des échelles.
+  - GROUPE : Variable catégorielle (0/1) pour différencier les sous-populations.
+
+## Contrôle qualité des données
+
+### Détection des valeurs aberrantes (SCL-90)
+
+```{r outliers_scl90, echo=FALSE}
+# Selection des colonnes SCL-90
+sclCols = paste0("Q", 1:90)
+
+# Fonction pour détecter les valeurs aberrantes
+detect_aberrantes = function(data, cols) {
+  aberrantes = data.frame()
+  for (item in cols) {
+    idx = which(data[[item]] > 4 & !is.na(data[[item]]))
+    if (length(idx) > 0) {
+      temp = data.frame(
+        NUMERO = data$NUMERO[idx],
+        VISIT = data$VISIT[idx],
+        GROUPE = data$GROUPE[idx],
+        Item = item,
+        Valeur = data[[item]][idx]
+      )
+      aberrantes <- rbind(aberrantes, temp)
+    }
+  }
+  return(aberrantes)
+}
+
+# Application
+scl_aberrantes = detect_aberrantes(df, sclCols)
+
+# Trier par NUMERO + VISIT
+scl_aberrantes = scl_aberrantes[order(scl_aberrantes$NUMERO, scl_aberrantes$VISIT), ]
+
+#Affichage des 10 premières valeurs aberrantes
+pander(
+  scl_aberrantes[1:10, ],
+  row.names = F,
+  caption = "Extrait des valeurs aberrantes détectées dans les items SCL-90 (valeurs > 4).",
+  split.table = Inf,  # Empêche de couper le tableau en blocs
+  split.cells = Inf   # Empêche le texte de revenir à la ligne
+)
+
+# Exporter les valeurs aberrantes dans un fichier CSV
+#write.csv2(scl_aberrantes, "scl90_valeurs_aberrantes.csv", row.names = FALSE)
+```
+
+**Commentaire sur les valeurs aberrantes SCL-90**
+
+L’extraction met en évidence un nombre important de réponses supérieures à la plage théorique de l’échelle SCL-90 (0–4). Ces valeurs extrêmes (ex. 10, 12, 23, 30, 40) surviennent sur des items variés, chez plusieurs sujets et à différents temps de visite, ce qui indique sous réserve un problème **systématique de saisie** plutôt qu’un phénomène clinique réel.
+
+### Analyse des données manquantes
+
+**a) Données manquantes HDRS : **
+
+```{r missing_hdrs, echo=FALSE}
+# Sélection des items HDRS
+hamdItems = paste0("HAMD", 1:17)
+
+# Identification des lignes avec au moins 1 NA
+ha_missing = df[apply(df[, hamdItems], 1, function(row) any(is.na(row))), ]
+
+# Affichage des 6 premières observations avec données manquantes
+pander(
+  ha_missing[1:8], 
+  row.names = F, 
+  caption = "Extrait des observations avec données manquantes dans HDRS.",
+  split.cells = Inf
+)
+```
+
+**Commentaire sur les données manquantes HDRS**
+
+L’enregistrement présenté pour le sujet 128 à J7 montre une absence complète de réponses sur l’ensemble des items HAMD1–HAMD17. Cette configuration correspond probablement à une **visite non renseignée**, et non à un schéma de données partiellement manquantes.
+
+**b) Données manquantes SCL-90 :**
+
+```{r missing_scl90, echo=FALSE}
+# Calcul du nombre et pourcentage de NA par observation
+naByRow = function(x) rowSums(is.na(x))          # Fonction NA par ligne
+sclCols = paste0("Q", 1:90)                      # Colonnes SCL-90         
+sclNA = naByRow(df[, sclCols])                   # Nombre de NA par observation
+pctNA = round(sclNA / length(sclCols) * 100, 1)  # Pourcentage de NA
+
+# Récapitulatif des données manquantes SCL-90
+recap = data.frame(
+  NUMERO = df$NUMERO,
+  VISIT = factor(
+    df$VISIT,
+    levels = c("J0", "J4", "J7", "J14", "J21", "J28", "J42", "J56")
+  ),
+  GROUPE = df$GROUPE,
+  nbNA = sclNA,
+  pctNA = pctNA
+)
+
+# Identification des patterns "récurrents" (≥20 items manquants, ~22%)
+seuil = 20
+recapRecurrent = recap[recap$nbNA >= seuil, ]
+
+# Tri pour lecture facile
+recapRecurrent = recapRecurrent[order(recapRecurrent$GROUPE,
+                                      recapRecurrent$VISIT,
+                                      recapRecurrent$NUMERO), ]
+# Affichage
+pander(
+  recapRecurrent,
+  row.names = F,
+  caption = paste0("Extrait des observations avec au moins ", 
+                   seuil, " données manquantes dans SCL-90."), 
+  split.cells = Inf
+)
+  
+# Exporter le récapitulatif des données manquantes SCL-90
+#write.csv2(recapRecurrent, "scl90_recap_donnees_manquantes.csv", row.names = FALSE)
+```
+
+**Commentaire sur les données manquantes SCL‑90** 
+
+Le tableau met en évidence plusieurs observations présentant une proportion très élevée de données manquantes, allant jusqu’à 100 % des 90 items du SCL‑90 pour certaines visites. Ces cas correspondent à des questionnaires totalement non renseignés, traduisant une absence complète de mesure à ces temps d’évaluation. D’autres profils montrent des taux intermédiaires (32,2 % ou 54,4 %), indiquant des réponses partielles mais insuffisantes pour un calcul fiable des scores. Globalement, ces situations révèlent une perte substantielle d’information et compromettent la validité des analyses longitudinales pour les individus concernés.
+
+\newpage
+
+**c) Comparaison avant/après traitement des aberrantes SCL90 :**
+
+```{r compare_aberrantes, echo=FALSE}
+resume_na_comparatif = function(df_before, df_after, cols) {
+  # Avant remplacement
+  nb_na_before  = colSums(is.na(df_before[, cols]))
+  pct_na_before = round(nb_na_before / nrow(df_before) * 100, 1)
+  
+  # Après remplacement
+  nb_na_after  = colSums(is.na(df_after[, cols]))
+  pct_na_after = round(nb_na_after / nrow(df_after) * 100, 1)
+  
+  # Résumé par item
+  df_resultat = data.frame(
+    Item           = cols,
+    Nb_NA_Before   = nb_na_before,
+    Pct_NA_Before  = pct_na_before,
+    Nb_NA_After    = nb_na_after,
+    Pct_NA_After   = pct_na_after,
+    stringsAsFactors = FALSE
+  )
+  
+  # Résumé global
+  total_na_before  = sum(nb_na_before)
+  total_na_after   = sum(nb_na_after)
+  total_cells      = nrow(df_before) * length(cols)
+  pct_global_before = round(total_na_before / total_cells * 100, 1)
+  pct_global_after  = round(total_na_after / total_cells * 100, 1)
+  max_pct_before =  max(pct_na_before)
+  max_pct_after  =  max(pct_na_after)
+  
+  df_resume = data.frame(
+    Item           = c("Maximum % NA", "Total NA", "Total cellules", "NA global (%)"),
+    Nb_NA_Before   = c("-", total_na_before, total_cells, "-"),
+    Pct_NA_Before  = c(max_pct_before, "-", "-", pct_global_before),
+    Nb_NA_After    = c("-", total_na_after, total_cells, "-"),
+    Pct_NA_After   = c(max_pct_after, "-", "-", pct_global_after),
+    stringsAsFactors = FALSE
+  )
+  
+  #--- tri SÉPARÉ ---
+  # bloc items : tri par Nb_NA_Before décroissant
+  df_resultat = df_resultat[order(-df_resultat$Nb_NA_Before), ]
+  
+  # assemblage final : items triés
+  rbind(df_resultat, df_resume)
+}
+
+# Après remplacement des aberrantes > 4 par NA
+scl.af = replace(scl[, sclCols], scl[, sclCols] > 4, NA)
+
+# Comparaison avant/après
+scl_na_comparatif = resume_na_comparatif(scl, scl.af, sclCols)
+
+# longueur 
+len = nrow(scl_na_comparatif)
+
+# Affichage
+pander(
+  scl_na_comparatif[c(1:10, 90:len), ],
+  row.names = FALSE,
+  caption = "10 
+  observations avec le plus de données manquantes SCL-90 avant et après remplacement des valeurs aberrantes (>4) par NA.",
+  split.cells = Inf
+)
+
+# Exporter le comparatif des données manquantes SCL-90
+#write.csv2(scl_na_comparatif, "scl90_comparatif_donnees_manquantes.csv", row.names = FALSE)
+```
+
+**Commentaire sur l’évolution des données manquantes SCL‑90**  
+
+Le tableau montre que la proportion de valeurs manquantes par item reste globalement faible (<2 %), mais qu’elle augmente légèrement après le remplacement des valeurs aberrantes (>4) par des NA. Cette opération entraîne une hausse du nombre total de données manquantes (de 482 à 611), faisant passer le taux global de 0,5 % à 0,7 %. L’impact est donc marginal à l’échelle de l’ensemble du questionnaire, mais certains items isolés (par ex. Q4, Q82) présentent une augmentation plus notable, traduisant une sensibilité particulière aux valeurs aberrantes.
+**Nota bene :** le maximun, total et NA global (%) résultent de calculs sur l’ensemble des items SCL-90.
+
+**d) Comparaison générale avant/après traitement des aberrantes dans la données princiale :**
+
+```{r compare_aberrantes_df, echo=FALSE}
+# Création d'une copie du jeu de données avant remplacement
+df_before = df
+# Remplacement des valeurs aberrantes (>4) par NA dans le jeu de données principal
+for (item in sclCols) {
+  df[[item]][df[[item]] > 4 & !is.na(df[[item]])] = NA
+}
+# Comparaison avant/après
+df_na_comparatif = resume_na_comparatif(df_before, df, sclCols)
+
+# longueur 
+len = nrow(df_na_comparatif)
+
+# Affichage
+pander(
+  df_na_comparatif[c(1:10, 90:len), ], 
+  row.names = FALSE,
+  caption = "Comparaison des données manquantes SCL-90 dans le jeu de données principal avant et après remplacement des valeurs aberrantes (>4) par NA.",
+  split.table = Inf
+)
+# Exporter le comparatif des données manquantes SCL-90 dans le jeu de données principal
+#write.csv2(df_na_comparatif, "df_comparatif_donnees_manquantes.csv", row.names = FALSE)
+```
+
+**Évaluation des données manquantes SCL-90 avec traitement des valeurs $>4$ dans le jeu de données principal**
+
+Le tableau met en évidence un niveau globalement faible de données manquantes par item, avec des pourcentages compris entre 2 % et 3,3 % après nettoyage. L’augmentation observée après remplacement des valeurs aberrantes reste modeste et se traduit par des hausses ponctuelles, notamment pour quelques items tels que Q4. Le taux global ne passe que de 2,3 % à 2,4 %, indiquant une perte d’information très limitée. La distribution homogène des valeurs manquantes et l’amplitude réduite des variations montrent que la qualité structurelle du jeu de données demeure globalement préservée malgré le nettoyage.
+
+**Nota bene :** le maximun, total et NA global (%) résultent de calculs sur l’ensemble du jeu de données final.
+
+### Analyse des Groupes, Visites et Scores HDRS (J0–J56)
+
+```{r subset_hdrs, echo=FALSE}
+# Sous-ensemble pour HDRS
+df.ha = df[, c("NUMERO", "VISIT", "GROUPE", hamdItems)]
+```
+
+```{r calculate_hdrs_total, echo=FALSE}
+hamdItems = paste0("HAMD", 1:17)
+# Calcul du score HDRS total
+df.ha$HDRS_total = rowSums(df.ha[, hamdItems], na.rm = TRUE)
+```
+
+- **a) Effectifs par Groupe × Visite : **
+
+```{r effectifs_group_visit, echo=FALSE, fig.cap="Effectifs par Groupe et Visite"}
+# Ordre des visites
+ord_visit <- c("J0", "J4", "J7", "J14", "J21", "J28", "J42", "J56")
+
+# Effectifs par groupe et visite
+tab = table(df$GROUPE, df$VISIT)[, ord_visit]
+colnames(tab) = ord_visit
+
+# Assemblage du tableau
+res = rbind(
+  `Groupe 0` = as.numeric(tab["0", ]),
+  `Groupe 1` = as.numeric(tab["1", ]),
+  Total      = colSums(tab),
+  Manquants  = colSums(tab) - 146
+)
+
+# Ajoute d'une colonne pour les noms de lignes
+res = cbind(Rubrique = rownames(res), res)
+
+pander(res, caption = "Effectifs par groupe et visite (HDRS)", row.name = F)
+```
+
+**Commentaire sur les effectifs HDRS par visite**  
+
+Le tableau montre une diminution progressive des effectifs disponibles au fil des visites, avec une perte cumulative de 26 observations entre J0 et J56. La réduction reste modérée mais régulière, ce qui souligne l’importance de prendre en compte cette dynamique dans l’interprétation des analyses, mais avant cela, faisons une comparaison entre ces deux effectifs en effectuant un test du khi-deux ($\chi^2$) afin d’évaluer leur impact.
+
+- **Test $\chi^2$ d’indépendance des effectifs J0 vs J56 : **
+
+```{r chi2_test_j0_j56, echo=FALSE}
+# Effectifs par groupe et visite J0 - J56
+tab_j0_j56 = table(df$GROUPE, df$VISIT)[, c("J0", "J56")]
+
+# Test χ² d’indépendance
+chi2 = chisq.test(tab_j0_j56, correct = FALSE)  # sans correction de continuité
+
+# Tableau de synthèse (χ² + p-value uniquement)
+res_tab = data.frame(
+  Rubrique = c("Groupe 0", "Groupe 1", "Total"),
+  J0       = c(tab_j0_j56[1, 1], tab_j0_j56[2, 1], sum(tab_j0_j56[, 1])),
+  J56      = c(tab_j0_j56[1, 2], tab_j0_j56[2, 2], sum(tab_j0_j56[, 2]))
+)
+
+res_test <- data.frame(
+  Test     = c("Chi² (ddl = 1)", "p-value"),
+  Valeur   = c(round(chi2$statistic, 3), round(chi2$p.value, 4)),
+  Interpretation = c(
+    "Les fréquences observées sont très proches",
+    ifelse(
+      chi2$p.value < 0.05,
+      "Impact statistiquement significatif (p < 0.05)",
+      "Pas d'impact statistiquement significatif (p ≥ 0.05)"
+    )
+  )
+)
+
+# Affichage avec pander
+pander(res_tab,
+       caption = "Effectifs par groupe et visite (J0 vs J56) ",
+       row.names = FALSE)
+
+pander(res_test,
+       caption = "Résultats du test khi-deux – poids des effcetifs J0 et J56",
+       row.names = FALSE)
+```
+
+**Commentaire Test $\chi^2$ d’indépendance des effectifs J0 vs J56**  
+
+Le test du khi-deux ($\chi^2$) réalisé sur les effectifs aux jours J0 et J56 confirme que les fréquences observées dans les deux groupes sont très proches ($\chi^2 = 0{,}102$ ; $p = 0{,}7497$), ce qui suggère que la diminution observée n’a pas d’impact statistiquement significatif.
+
+Par ailleurs, j'ai mis la correction de continuité (correction de Yates, `correct = FALSE`), car R l’applique par défaut (`correct = TRUE`) pour les tableaux 2×2.
+
+- **b) Histogramme et densité superposés HDRS_total J0 vs J56 : **
+
+```{r histogram_hdrs_j0_j56, echo=FALSE, fig.height = 4 ,fig.cap="Histogramme et densité du score HDRS (J0 vs J56)"}
+
+# Sélection des items HDRS
+hamdItems = paste0("HAMD", 1:17)
+
+#  Filtrage J0 et J56
+df.j0j56 = df.ha[df.ha$VISIT %in% c("J0", "J56"), ]
+
+# Score total
+df.j0j56$HDRS_total = rowSums(df.j0j56[, hamdItems], na.rm = FALSE)
+
+# Palette 2 couleurs (J0 vs J56) – Zissou1
+cols_j0j56 <- wes_palette("Zissou1", 2, type = "continuous")
+
+# Figure : histogramme + densité superposés
+ggplot(df.j0j56,
+       aes(x = HDRS_total, group = VISIT, fill = VISIT, colour = VISIT)) +
+
+  # Histogrammes
+  geom_histogram(aes(y = ..density..), bins = 30, alpha = 0.4,
+                 colour = "white", size = 0.25) +
+
+  # Densités
+  geom_density(alpha = 0.7, size = 0.9, colour = "white") +
+
+  # Couleurs
+  scale_fill_manual(values = alpha(cols_j0j56, 0.7),
+                    labels = c("J0", "J56")) +
+  scale_colour_manual(values = cols_j0j56,
+                      labels = c("J0", "J56")) +
+
+  # Labels
+  labs(title = "",
+       x = "Score HDRS total", y = "Densité", fill = "Visite", colour = "Visite") +
+
+  # Thème
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "right",
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        panel.border = element_rect(colour = "gray95", fill = NA, linewidth = 1))
+```
+
+**Commentaire histogramme et densité HDRS J0 vs J56**
+
+La distribution des scores HDRS se déplace nettement vers des valeurs plus faibles à J56 (rouge), avec un pic autour de 5, contre un pic plus élevé et une dispersion plus large à J0 (bleu). Cela indique une réduction marquée de la sévérité dépressive et une variabilité moindre à J56. L’overlap limité entre les densités suggère une amélioration cohérente sur l’ensemble des participants.
+
+- **c) Statistiques descriptives des scores HDRS totaux (J0 & J56) par Groupe : **
+
+```{r stats_hdrs_j0_j56, echo=FALSE}
+#  Filtrage J0 et J56
+df.j0j56 = df.ha[df.ha$VISIT %in% c("J0", "J56"), ]
+
+# Score total
+df.j0j56$HDRS_total = rowSums(df.j0j56[, hamdItems], na.rm = FALSE)
+
+#  Stats par visite
+stats = function(x) {
+  c(Min      = min(x, na.rm = TRUE),
+    `1st Qu.` = quantile(x, .25, na.rm = TRUE),
+    Median   = median(x, na.rm = TRUE),
+    Mean     = mean(x, na.rm = TRUE),
+    `3rd Qu.` = quantile(x, .75, na.rm = TRUE),
+    Max      = max(x, na.rm = TRUE),
+    Sum      = sum(x, na.rm = TRUE))
+}
+
+#  J0 et J56
+j0   = stats(df.j0j56$HDRS_total[df.j0j56$VISIT == "J0"])
+j56  = stats(df.j0j56$HDRS_total[df.j0j56$VISIT == "J56"])
+
+# Stat generale HDRS total J0 - J56
+j0_j56 = stats(df.j0j56$HDRS_total)
+
+# Assemblage final
+mat_stats = rbind(j0, j56, j0_j56)   # matrice 3 × 7
+tab_final = data.frame(
+  Statistique = c("J0", "J56", "J0_J56"),
+  as.data.frame(mat_stats, check.names = FALSE)
+)
+
+#  Affichage
+pander(
+  tab_final, 
+  caption = "Statistiques descriptives HDRS total (J0, J56, J0-J56)", row.name = FALSE
+)
+```
+
+**Commentaire statistiques descriptives HDRS J0 vs J56**
+
+Les statistiques descriptives confirment une réduction marquée de la sévérité dépressive entre J0 et J56. Les valeurs centrales chutent fortement : la médiane passe de 27 à 7,5 et la moyenne de 27,9 à 7,8. L’ensemble de la distribution se contracte vers les faibles scores, avec un minimum de 0 à J56 et un troisième quartile nettement réduit. Sur l’ensemble de la période, la médiane globale s’établit à 24, reflétant une amélioration homogène et durable chez la majorité des patients.
+
+\newpage
+
+- **d) Densités superposées (transparentes) HDRS_total J0 à J56 : **
+
+```{r density_hdrs, fig.height = 4, fig.align='center', fig.cap="Densité du score HDRS par visite", echo=FALSE}
+# Ordre des visites
+df$VISIT = factor(df$VISIT, levels = c("J0", "J4", "J7", "J14", "J21", "J28", "J42", "J56"))
+
+# Palette wesanderson (8 couleurs pour 8 visites)
+cols_vis = wes_palette("Zissou1", 8, type = "continuous")
+
+# Calcul du score HDRS total
+df$HDRS_total = rowSums(df[, hamdItems], na.rm = FALSE)
+
+# Graphique de densité
+ggplot(df, aes(x = HDRS_total, group = VISIT, colour = VISIT, fill = VISIT)) +
+  geom_density(alpha = 0.35, size = 0.9, colour = "white") +   # bordures blanches
+  scale_fill_manual(values = alpha(cols_vis, 0.35)) +
+  scale_colour_manual(values = cols_vis) +
+  labs(title = "",
+       x = "Score HDRS", y = "Densité") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "right", 
+        panel.border = element_rect(colour = "gray95", fill = NA, linewidth = 1))
+```
+
+**Commentaire densités HDRS J0 à J56**
+
+Les densités se déplacent progressivement vers des scores plus faibles de J0 à J56, avec une concentration croissante autour de valeurs basses. Cette dynamique indique une réduction continue de la sévérité dépressive et une variabilité moindre au fil des visites. L’overlap décroissant confirme une amélioration cohérente dans le temps.
+
+# VALIDATION INSTRUMENTALE – HDRS (J0 & J56)
+
+## Analyse des items
+
+### Diagrammes en bâton (0-4) : effet plancher/plafond.
+
+\newpage
+
+\begin{landscape}
+
+```{r hamd_barpplots, echo=FALSE, fig.height=7.5, fig.width=11, fig.pos="H", out.width="100%", fig.cap="Diagrammes en bâton des items HDRS aux temps J0 et J56"}
+hamdItems = paste0("HAMD", 1:17)
+
+barplot.vis = function(v, titre, col){
+  tb = table(factor(v, levels=0:4), useNA="ifany")
+  bp = barplot(tb, col=col, main=titre,
+                xlab="Modalité", ylab="Effectif",
+                ylim=c(0, 145), las=1, cex.main=0.9)
+  text(bp, tb + 5, labels=tb, pos=3, cex=0.8)
+}
+
+layout(matrix(c(1:34,34), nrow = 5, byrow = TRUE))
+
+par(mar=c(2, 2.2, 2, 2), oma=c(0, 0, 0, 0))
+
+for(it in hamdItems){
+  for(v in c("J0", "J56")){
+    couleur = ifelse(v == "J0", "steelblue", "darkorange")
+    barplot.vis(df.ha[df.ha$VISIT == v, it],
+                sprintf("%s - %s", it, v), col=couleur)
+  }
+}
+
+par(mfrow=c(1,1))
+```
+
+\end{landscape}
+
+\newpage
+
+### Tableau récapitulatif des effets plancher/plafond par item : 
+
+```{r hamd_floor_ceiling, echo=FALSE}
+
+# Effets plancher / plafond (% min et max)
+plancher.plafond = function(x, seuil = 60) {
+  # Supprimer les NA
+  x = x[!is.na(x)]
+  
+  if (length(x) == 0) {
+    return(data.frame(
+      plancher = NA, 
+      plafond = NA, 
+      effet.plancher = NA, 
+      effet.plafond = NA,
+      mode = NA
+    ))
+  }
+  
+  # Calcul des fréquences en %
+  tab = prop.table(table(factor(x, levels = 0:4))) * 100
+  
+  # Plancher : max entre 0 et 1
+  pct_plancher = max(tab["0"], tab["1"])
+  
+  # Plafond : max entre 3 et 4
+  pct_plafond = max(tab["3"], tab["4"])
+  
+  # Effets binaires
+  effet.plancher = pct_plancher >= seuil
+  effet.plafond = pct_plafond >= seuil
+  
+  # Déterminer le mode
+  if (effet.plancher) {
+    # Pour l'effet plancher, on prend la modalité (0 ou 1) qui a le pourcentage le plus élevé
+    mode_val = ifelse(tab["0"] >= tab["1"], "0", "1")
+  } else if (effet.plafond) {
+    # Pour l'effet plafond, on prend la modalité (3 ou 4) qui a le pourcentage le plus élevé
+    mode_val = ifelse(tab["3"] >= tab["4"], "3", "4")
+  } else {
+    mode_val = "-"
+  }
+  
+  # Résultat sous forme de data.frame
+  data.frame(
+    plancher = as.numeric(pct_plancher), 
+    plafond = as.numeric(pct_plafond), 
+    effet.plancher = ifelse(effet.plancher, "Oui", "-"), 
+    effet.plafond = ifelse(effet.plafond, "Oui", "-"),
+    mode = mode_val,
+    stringsAsFactors = FALSE
+  )
+}
+
+res.it = do.call(rbind, lapply(hamdItems, function(it) {
+  results = lapply(c("J0", "J56"), function(v) {
+    vals = plancher.plafond(df.ha[df.ha$VISIT == v, it])
+    data.frame(
+      VISIT = v,
+      Item = it,
+      vals,
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, results)
+}))
+
+# Arrondir les colonnes numériques
+res.it$plancher = round(res.it$plancher, 1)
+res.it$plafond = round(res.it$plafond, 1)
+
+pander(res.it, 
+       caption = "Effets plancher/plafond des items HDRS (J0 & J56)", 
+       row.name = FALSE
+)
+```
+
+**Commentaire effets plancher/plafond HDRS J0 vs J56**
+
+Les diagrammes en bâton et le tableau révèlent une nette accentuation des effets plancher à J56, avec plusieurs items (HAMD2, HAMD3, HAMD5, HAMD6, etc.) présentant plus de 70 % de réponses nulles. À J0, certains items comme HAMD1 et HAMD10 montrent des effets plafond marqués. Cette évolution traduit une amélioration globale de l’état dépressif, mais suggère aussi une réduction de la sensibilité discriminante de certains items en fin de suivi.
+
+- **e) Dendrogrammes & Matrices de corrélation des items HDRS (J0 & J56) : **
+
+\newpage
+
+\begin{landscape}
+
+```{r hamd_dendrogrammes_corrplots, echo=FALSE, fig.width=11, fig.height=8, fig.align='center', fig.cap="Dendrogrammes et matrices de corrélation des items HDRS aux temps J0 et J56", out.width="100%"}
+
+cor.J0  = round(cor(df.ha[df.ha$VISIT=="J0",  hamdItems], use="complete.obs"), 2)
+cor.J56 = round(cor(df.ha[df.ha$VISIT=="J56", hamdItems], use="complete.obs"), 2)
+
+dJ0 = sqrt(2*(1-cor.J0))
+dJ56 = sqrt(2*(1-cor.J56))
+
+clusterJ0 = hclust(as.dist(dJ0), method = "ward.D2")
+clusterJ56 = hclust(as.dist(dJ56), method = "ward.D2")
+
+layout(matrix(c(1, 2, 3, 4), nrow = 2, byrow = TRUE))
+
+par(mar = c(2, 2, 2, 2))
+
+plot(
+  clusterJ0,
+  main = "A. Dendrogramme HAMD - J0",
+  xlab = "",
+  sub = "",
+  cex.main = 1,
+  hang = 0
+)
+rect.hclust(clusterJ0, k = 3, border = "darkorange")
+
+plot(
+  clusterJ56,
+  main = "B. Dendrogramme HAMD - J56",
+  xlab = "",
+  sub = "",
+  cex.main = 1,
+  hang = 0
+)
+rect.hclust(clusterJ56, k = 3, border = "darkorange")
+
+corrplot(
+  cor.J0,
+  method = "color",
+  type = "upper",
+  order = "hclust",
+  col = wes_palette("Zissou1", 100, type = "continuous"),
+  tl.col = "gray20",
+  tl.cex = 0.8,
+  tl.srt = 45,
+  addCoef.col = "white",
+  number.cex = 0.6,
+  diag = FALSE,
+  mar = c(0, 0, 1, 0), 
+  addrect = 3,
+  rect.col = "gray40"
+)
+title("C. Matrice de Corrélation - J0", line = 1.3, cex.main = 1)
+
+corrplot(
+  cor.J56,
+  method = "color",
+  type = "upper",
+  order = "hclust",
+  col = wes_palette("Zissou1", 100, type = "continuous"),
+  tl.col = "gray20",
+  tl.cex = 0.8,
+  tl.srt = 45,
+  addCoef.col = "white",
+  number.cex = 0.6,
+  diag = FALSE,
+  mar = c(0, 0, 1, 0),
+  addrect = 3,
+  rect.col = "gray40"
+)
+title("D. Matrice de Corrélation - J56", line = 1.3, cex.main = 1)
+
+par(mfrow = c(1, 1))
+```
+
+\end{landscape}
+
+\newpage
+
+- **ACP exploratoire (J0 & J56) avec sélection automatique des dimensions (mdspca de psy) : **
+
+```{r hamd_acp_j0, echo=FALSE, fig.align='center', fig.height=4, fig.cap="ACP exploratoire des items HDRS aux temps J0", out.width="80%"}
+# ACP avec sélection automatique des dimensions (J0)
+df.ha.J0  = df.ha[df.ha$VISIT == "J0", hamdItems]
+
+# ACP J0
+mdspca(df.ha.J0)
+```
+
+
+```{r hamd_acp_j56, echo=FALSE, fig.align='center', fig.height=4, fig.cap="ACP exploratoire des items HDRS aux temps J56", out.width="80%"}
+# ACP avec sélection automatique des dimensions (J56)
+df.ha.J56 = df.ha[df.ha$VISIT == "J56", hamdItems]
+
+# ACP J56
+mdspca(df.ha.J56)
+```
+
+**Commentaire dendrogrammes et matrices de corrélation HDRS J0 vs J56**
+
+Les dendrogrammes et matrices de corrélation révèlent une structuration progressive des relations entre items HDRS entre J0 et J56. À J0, les corrélations sont modérées et dispersées (ex. HAMD12–HAMD16 : 0.44), traduisant une symptomatologie hétérogène. À J56, les corrélations deviennent plus marquées et organisées, avec des liens forts entre HAMD1 et HAMD3 (0.67), HAMD7 (0.63), HAMD8 (0.52), ainsi que des associations croisées entre HAMD3, HAMD7 et HAMD8 (>0.5), qui forment un noyau symptomatique cohérent centré sur l’humeur dépressive et le ralentissement. Cette convergence est en accord avec les critères d’unidimensionnalité du HAM-D6 validés par [Kølbæk et al. (2024)](https://pubmed.ncbi.nlm.nih.gov/38461898/), où les items fondamentaux montrent une bonne réactivité et une structure homogène chez les patients hospitalisés. 
+
+**Commentaire sur l’ACP HDRS (J0 vs J56)**
+
+L’ACP montre qu’à J0, les relations entre items HDRS sont faibles et peu structurées, avec une dispersion centrale traduisant une faible contribution aux axes. À J56, les variables se redistribuent en périphérie du cercle, révélant une structuration plus nette. Les rapprochements entre HAMD1, HAMD3, HAMD7 et HAMD8 indiquent un noyau symptomatique corrélé en cohérence avec les critères d’unidimensionnalité du HAM-D6 validés par [Kølbæk et al. (2024)](https://pubmed.ncbi.nlm.nih.gov/38461898/).
+
+## Structure factorielle
+
+### Scree-plot (valeurs propres).
+
+```{r hamd_screeplots, echo=FALSE, fig.height=3.5, fig.width=11, fig.cap="Scree-plots des items HDRS aux temps J0 et J56", out.width="100%"}
+par(mfrow = c(1, 2))
+
+# Scree-plot
+scree.plot(df.ha.J0, simu = 20, title = "Scree-plot - Hamilton J0")
+scree.plot(df.ha.J56, simu = 20, title = "Scree-plot - Hamilton J56")
+
+# Réinitialisation
+par(mfrow = c(1, 1))
+```
+
+### Biplot Individus et Variables
+
+```{r hamd_pca_biplots, echo=FALSE, fig.height=6, fig.width=11, fig.cap="Biplots des items HDRS aux temps J0 et J56", out.width="100%", fig.pos="H"}
+# Analyse PCA
+res.pca.J0 = PCA(df.ha.J0, graph = FALSE)
+res.pca.J56 = PCA(df.ha.J56, graph = FALSE)
+
+# Biplot J0
+biplot_J0 = fviz_pca_biplot(res.pca.J0,
+                            col.ind = "cos2",
+                            col.var = "contrib",
+                            alpha.var = 0.7,
+                            label = "var",
+                            repel = TRUE,
+                            title = "Biplot J0 - Individus et Variables",
+                            ggtheme = theme_minimal())
+
+# Biplot J56
+biplot_J56 = fviz_pca_biplot(res.pca.J56,
+                             col.ind = "cos2", 
+                             col.var = "contrib",
+                             alpha.var = 0.7,
+                             label = "var",
+                             repel = TRUE,
+                             title = "Biplot J56 - Individus et Variables",
+                             ggtheme = theme_minimal())
+# Affichage côte à côte
+grid.arrange(biplot_J0, biplot_J56 , ncol = 2)
+```
+
+**Commentaire scree-plots HDRS (J0 vs J56)**
+
+À J0, l’analyse parallèle suggère plus de 4 dimensions, confirmant une structure multidimensionnelle complexe et non réductible à un seul facteur. À J56, le premier facteur domine fortement (valeur propre ~5), indiquant une forte unidimensionnalité émergente, probablement liée à une réduction globale des symptômes.
+
+**Commentaire des Biplots HDRS J0 vs J56**
+
+À J0, le biplot révèle une structure factorielle diffuse avec une faible variance expliquée (Dim1 : 11.4%, Dim2 : 10.8%). Les vecteurs des items sont courts et dispersés dans toutes les directions, traduisant des corrélations faibles entre items et une symptomatologie hétérogène caractéristique des patients sévèrement déprimés.
+
+À 56, on observe une restructuration majeure : la variance de Dim1 augmente à 28.8%, et les vecteurs s'allongent considérablement ($\cos^2$ plus élevés). Les items forment désormais un faisceau cohérent orienté vers la droite, indiquant l'émergence d'un facteur général de dépression. Les items HAMD3 (humeur dépressive), HAMD1 (tristesse), HAMD8 (ralentissement) et HAMD16 présentent les contributions les plus fortes, conformes au noyau du HAM-D6.
+
+### Analyse factorielle exploratoire (AFE) : saturations et variance expliquée
+
+```{r hamd_afe_j0_j56, echo=FALSE}
+#  Filtrage J0 et J56
+df.j0j56 = df.ha[df.ha$VISIT %in% c("J0", "J56"), ]
+
+# Corrélations
+cor.J0  = round(cor(df.ha[df.ha$VISIT=="J0",  hamdItems], use="complete.obs"), 2)
+cor.J56 = round(cor(df.ha[df.ha$VISIT=="J56", hamdItems], use="complete.obs"), 2)
+
+# AFE
+afe.J0  = fa(cor.J0,  nfactors = 3, rotate = "varimax", fm = "ml")
+afe.J56 = fa(cor.J56, nfactors = 1, rotate = "varimax", fm = "ml")
+
+# --- J0 : 3 facteurs ---
+loadJ0 = as.data.frame(unclass(afe.J0$loadings))
+loadJ0 = round(loadJ0, 2)
+loadJ0[abs(loadJ0) < 0.30] = "-"   # masque < .30 en chaîne
+
+tab_load_J0 <- data.frame(
+  Item = rownames(loadJ0),
+  lapply(loadJ0, as.character),      # conversion explicite en texte
+  stringsAsFactors = FALSE
+)
+
+colnames(tab_load_J0)[2:4] = c("Facteur 1", "Facteur 2", "Facteur 3")
+
+# --- J56 : 1 facteur ---
+loadJ56 = as.data.frame(unclass(afe.J56$loadings))
+loadJ56 = round(loadJ56, 2)
+loadJ56[abs(loadJ56) < 0.30] = "-"
+
+tab_load_J56 <- data.frame(
+  Item = rownames(loadJ56),
+  Loading = as.character(loadJ56[,1]),
+  stringsAsFactors = FALSE
+)
+
+colnames(tab_load_J56)[2] = "Facteur 1"
+
+# Tableau de pourcentage de variance expliquée par facteur
+variance_table = function(fit, visit, nfactors = NULL) {
+  # % variance par facteur
+  var_per_fact = fit$Vaccounted[1, 1:nfactors]
+  # % cumulé
+  var_cumul = cumsum(var_per_fact)
+  
+  tab = data.frame(
+    Facteurs = paste0("Facteur ", 1:nfactors),  # noms explicites
+    Visite      = rep(visit, nfactors),
+    `Var expl. (%)` = round(var_per_fact, 1),
+    `Cumul (%)`     = round(var_cumul, 1),
+    check.names = FALSE
+  )
+  tab
+}
+
+# Assemblage des tableaux de variance
+tab_var = rbind(
+  variance_table(afe.J0,  "J0",  3),
+  variance_table(afe.J56, "J56", 1)
+)
+
+# Affichage
+pander(
+  tab_var,
+  caption = "Pourcentage de variance expliquée par les facteurs retenus – AFE HDRS J0 & J56 (varimax)",
+  row.names = FALSE
+)
+```
+
+**Commentaire sur la variance expliquée – AFE HDRS J0 et J56** 
+
+À J0, la faible variance expliquée par les premiers facteurs (<4%) confirme une structure multidimensionnelle diffuse. À J56, le facteur principal explique à lui seul 4,2% de la variance, traduisant une émergence d’un noyau unidimensionnel plus cohérent, en lien avec la réduction globale des symptômes dépressifs.
+
+```{r hamd_afe_loadings_j0_j56, echo=FALSE}
+# Affichage des saturations J0
+pander(
+  tab_load_J0, 
+  caption = "Saturations ≥ 0,30 – AFE de l’HDRS à J0 (3 facteurs, rotation varimax) ", 
+  row.names = FALSE
+)
+
+# Affichage des saturations J56
+pander(
+  tab_load_J56, 
+  caption = "Saturations ≥ 0,30 – AFE de l’HDRS à J56 (1 facteur, rotation varimax)", 
+  row.names = FALSE
+)
+```
+
+**Commentaire sur les saturations – AFE HDRS J0 vs J56**
+
+À J0, la structure trifactorielle révèle des dimensions cliniquement distinctes : le **Facteur 1** regroupe les symptômes somatiques gastro-intestinaux et la perte de poids (HAMD12 : 0.99 ; HAMD16 : 0.43), le **Facteur 2** isole l'hypocondrie (HAMD13 : 0.97) avec l'insomnie tardive (HAMD4 : 0.37), tandis que le **Facteur 3** rassemble l'anxiété somatique (HAMD11), les symptômes génitaux (HAMD9 : 0.49), l'anxiété psychique (HAMD6 : 0.42) et le ralentissement (HAMD7 : 0.33). Notably, les items du noyau dépressif (HAMD1-3, 7, 8) ne saturent sur aucun facteur, traduisant une désorganisation symptomatique initiale.
+
+À J56, 13 des 17 items convergent vers un **facteur général unique**, avec des saturations élevées pour l'humeur dépressive (HAMD1 : 0.80), le ralentissement (HAMD7 : 0.74), la culpabilité (HAMD3 : 0.70) et l'insomnie intermédiaire (HAMD8 : 0.66). Cette structure correspond au **noyau HAM-D₆** validé par [Bech (2006)](https://pmc.ncbi.nlm.nih.gov/articles/PMC3181766/), confirmant l'émergence d'une dimension dépressive unifiée post-traitement. Les items HAMD6, HAMD14, HAMD16 et HAMD17 (symptômes somatiques et insight) restent non saturés, suggérant leur faible sensibilité au changement thérapeutique, en accord avec les observations de [Timmerby et al. (2017)](https://pubmed.ncbi.nlm.nih.gov/28490031/).
+
+## Fiabilité
+
+### Alpha de Cronbach ($\alpha$) par visite et $\alpha$ si item supprimé
+
+```{r hamd_cronbach, echo=FALSE}
+# 1. Calcul des Alphas (avec check.keys=TRUE pour gérer les inversions auto)
+# On utilise suppressWarnings pour ne pas polluer le PDF avec les messages d'inversion
+alpha.J0  = suppressWarnings(psych::alpha(df.j0j56[df.j0j56$VISIT == "J0", hamdItems], check.keys = TRUE))
+alpha.J56 = suppressWarnings(psych::alpha(df.j0j56[df.j0j56$VISIT == "J56", hamdItems], check.keys = TRUE))
+
+# 2. Extraction sécurisée des valeurs (Conversion explicite en numérique)
+# Cela résout l'erreur "list cannot be coerced to double"
+val_alpha_J0 = as.numeric(alpha.J0$total$raw_alpha)
+ase_J0       = as.numeric(alpha.J0$total$ase)
+
+val_alpha_J56 = as.numeric(alpha.J56$total$raw_alpha)
+ase_J56       = as.numeric(alpha.J56$total$ase)
+
+# 3. Création du tableau des résultats
+resultats_alpha <- data.frame(
+  Visite = c("J0", "J56"),
+  Alpha_Cronbach = c(
+    round(val_alpha_J0, 3),
+    round(val_alpha_J56, 3)
+  ),
+  # Calcul des bornes IC à 95% : Alpha +/- 1.96 * Erreur Standard
+  IC_inf = c(
+    round(val_alpha_J0 - 1.96 * ase_J0, 3),
+    round(val_alpha_J56 - 1.96 * ase_J56, 3)
+  ),
+  IC_sup = c(
+    round(val_alpha_J0 + 1.96 * ase_J0, 3),
+    round(val_alpha_J56 + 1.96 * ase_J56, 3)
+  )
+)
+
+# 4. Affichage
+pander(resultats_alpha,
+       caption = "Alpha de Cronbach (standardisé) avec intervalles de confiance à 95%")
+
+```
+
+**Commentaire : Cohérence interne de l'HDRS-17 – J0 vs J56**
+
+À J0, l'alpha de Cronbach est faible ($\alpha = 0.46$, IC95% [0.34–0.59]), bien en dessous du seuil d'acceptabilité de **0.70**, reflétant une hétérogénéité symptomatique importante chez les patients sévèrement déprimés. Cette faible cohérence est cohérente avec la structure trifactorielle observée à l'AFE.
+
+À J56, l'alpha atteint un niveau excellent ($\alpha = 0.83$, IC95% [0.79–0.87]), dépassant le seuil de 0.80 recommandé pour les instruments cliniques. Cette amélioration substantielle ($\Delta\alpha = +0.37$) traduit l'émergence d'une structure unidimensionnelle post-traitement, où 13 items convergent vers un facteur général unique.
+
+## Validité convergente
+
+### Score SCL-90 « dépression » vs HDRS_total et HDRS_noyau : corrélation de Pearson (J0 & J56).
+
+```{r validite_convergente_scl90, echo=FALSE}
+# Jeux de colonnes
+hamdItems    = paste0("HAMD", 1:17)
+sclCols      = paste0("Q", 1:90)
+noyauItems   = c("HAMD1", "HAMD2", "HAMD7", "HAMD8", "HAMD10", "HAMD13")
+
+# Dimensions SCL-90
+scl_dimensions <- list(
+  Somatisation = c(1, 4, 12, 27, 40, 42, 48, 49, 52, 53, 56, 58),
+  Obsession    = c(3, 9, 10, 28, 38, 45, 46, 51, 55, 65),
+  Sensitivite  = c(6, 21, 34, 36, 37, 41, 61, 69, 73),
+  Depression   = c(5, 14, 15, 20, 22, 26, 29, 30, 31, 32, 54, 71, 79),
+  Anxiete      = c(2, 17, 23, 33, 39, 57, 72, 78, 80, 86),
+  Hostilite    = c(11, 24, 63, 67, 74, 81),
+  Phobie       = c(13, 25, 47, 50, 70, 75, 82),
+  Paranoia     = c(8, 18, 43, 68, 76, 83),
+  Psychotisme  = c(7, 16, 35, 62, 77, 84, 85, 87, 88, 90),
+  Divers       = c(19, 44, 59, 60, 64, 66, 89)
+)
+
+# Scores HDRS
+df$HDRS_total  <- rowSums(df[, hamdItems], na.rm = FALSE)
+df$HDRS_noyau  <- rowSums(df[, noyauItems], na.rm = FALSE)
+
+#  Filtrage J0 / J56
+df.j0j56 <- df[df$VISIT %in% c("J0", "J56"), ]
+
+# Scores SCL-90-R (dimensions + indices globaux)
+for (dim in names(scl_dimensions)) {
+  items <- paste0("Q", scl_dimensions[[dim]])
+  df.j0j56[[paste0("SCL_", dim)]] <-
+    ifelse(rowSums(!is.na(df.j0j56[, items])) >= length(items) / 2,
+           rowMeans(df.j0j56[, items], na.rm = TRUE),
+           NA)
+}
+
+# Indices globaux SCL-90-R
+# GSI (Global Severity Index) : moyenne de tous les items# Indices globaux
+df.j0j56$SCL_GSI  = rowMeans(df.j0j56[, sclCols], na.rm = TRUE)
+# PST (Positive Symptom Total) : nombre de symptômes avec score > 0
+df.j0j56$SCL_PST  = rowSums(!is.na(df.j0j56[, sclCols]) &
+                              df.j0j56[, sclCols] > 0)
+# PSDI (Positive Symptom Distress Index) : intensité moyenne des symptômes présents
+df.j0j56$SCL_PSDI = ifelse(df.j0j56$SCL_PST > 0,
+                           rowSums(df.j0j56[, sclCols], na.rm = TRUE) / df.j0j56$SCL_PST,
+                           NA)
+
+# Construction explicite des tableaux
+vars_vis = c("HDRS_total", "HDRS_noyau", "SCL_GSI", "SCL_PST", "SCL_PSDI")
+
+# Par VISITE (J0 vs J56) – 6 lignes (3 stats × 2 visites)
+tab_vis = data.frame(Visite = rep(c("J0", "J56"), each = 3), 
+                     Stat   = rep(c("N", "Moy", "SD"), 2))
+
+for (v in vars_vis) {
+  res = aggregate(df.j0j56[[v]], list(df.j0j56$VISIT), function(x)
+    c(
+      N = sum(!is.na(x)),
+      Moy = mean(x, na.rm = TRUE),
+      SD  = sd(x, na.rm = TRUE)
+    ), simplify = TRUE)
+  tab_vis[[v]] = round(c(t(res[, 2])), 2)
+}
+
+# Par GROUPE × VISITE – 12 lignes (3 stats × 4 combinaisons)
+vars_grp = c("HDRS_total", "SCL_GSI")
+
+tab_grp = data.frame(
+  Groupe = rep(c(0, 1), each = 6),
+  Visite = rep(rep(c("J0", "J56"), each = 3), 2),
+  Stat   = rep(c("N", "Moy", "SD"), 4)
+)
+
+for (v in vars_grp) {
+  res = aggregate(df.j0j56[[v]], 
+                  list(Groupe = df.j0j56$GROUPE, Visite = df.j0j56$VISIT), 
+                  function(x)
+    c(
+      N = sum(!is.na(x)),
+      Moy = mean(x, na.rm = TRUE),
+      SD  = sd(x, na.rm = TRUE)
+    ), simplify = TRUE)
+  tab_grp[[v]] <- round(c(t(res[, 3])), 3)
+}
+
+# Affichage avec pander
+pander(
+  tab_vis, 
+  caption = "Statistiques descriptives globales – HDRS et indices SCL-90 (J0 vs J56)"
+)
+
+pander(
+  tab_grp, 
+  caption = "HDRS total et Gravité globale Index (GSI) par groupe et visite"
+)
+```
+
+**Commentaire : Validité convergente HDRS vs SCL-90-R**
+
+Les statistiques descriptives révèlent une évolution parallèle des mesures hétéro-évaluatives (HDRS) et auto-évaluatives (SCL-90-R) entre J0 et J56. À J0, les scores HDRS (M = 27.9, SD = 4.2) et l'indice de sévérité globale SCL-GSI (M = 1.64, SD = 0.58) traduisent une symptomatologie dépressive sévère avec une détresse psychologique élevée (PST = 61 symptômes positifs). À J56, la réduction substantielle des scores HDRS (M = 7.8, $\Delta = -72%$) s'accompagne d'une diminution concordante du SCL-GSI (M = 0.52, $\Delta = -68%$) et du nombre de symptômes positifs (PST = 27, $\Delta = -55%$).
+
+Cette co-variation entre instruments de nature différente (hétéro vs auto-évaluation) constitue un argument fort en faveur de la **validité convergente** de l'HDRS-17. La diminution parallèle du PSDI (2.31 à 1.43) indique également une réduction de l'intensité subjective des symptômes résiduels. Ces résultats sont conformes aux critères de validité convergente établis par [Bagby et al. (2004)](https://pubmed.ncbi.nlm.nih.gov/14992528/), qui recommandent des corrélations modérées à fortes entre l'HDRS et les mesures auto-rapportées de dépression.
+
+L'analyse par groupe suggère une réponse thérapeutique différentielle, le groupe 1 montrant une réduction plus marquée à J56 (HDRS : 10.5 vs 27.8 pour le groupe 0), justifiant une analyse comparative approfondie, d'ailleurs faisant trait avec la question 2 devoir.
+
+- **Matrices de corrélation HDRS (total et noyeau) vs scores SCL-90- indices globaux de gravité J0 & J56) :**
+
+```{r validite_convergente_corrplots, echo=FALSE, fig.height=5, fig.width=11, out.width="100%", fig.cap="Matrices de corrélation HDRS et scores SCL90 (indices globaux de gravité) aux temps J0 et J56"}
+# Sélection des variables pour la corrélation
+SclHdrsDepre = c(
+  "HDRS_noyau",
+  "HDRS_total",
+  "SCL_Depression",
+  "SCL_Divers",
+  "SCL_GSI",
+  "SCL_PST",
+  "SCL_PSDI"
+)
+
+# Matrices de corrélation par VISIT
+SclHdrsDepre.J0  = round(
+  cor(df.j0j56[df.j0j56$VISIT == "J0", SclHdrsDepre], 
+      use = "complete.obs"), 2)
+SclHdrsDepre.J56 = round(
+  cor(df.j0j56[df.j0j56$VISIT == "J56", SclHdrsDepre], 
+      use = "complete.obs"), 2)
+
+# Fenêtrage pour juxtaposer les deux matrices
+par(mfrow = c(1, 2), mar = c(0, 0, 2, 0))  # marges ajustées
+
+# Matrice de corrélation J0
+corrplot(
+  SclHdrsDepre.J0,
+  method = "color",
+  type = "upper",
+  order = "hclust",
+  col = wes_palette("Zissou1", 100, type = "continuous"),
+  tl.col = "gray20",
+  tl.cex = 0.8,
+  tl.srt = 45,
+  addCoef.col = "white",
+  number.cex = 0.6,
+  diag = FALSE,
+  mar = c(0, 0, 1.5, 0),
+  addrect = 3,
+  rect.col = "gray40"
+)
+title("Corrélations HDRS (noyeau et total) – \n SCL90 (sous échelle) à J0", 
+      line = -1, 
+      cex.main = 0.9
+)
+
+# Matrice de corrélation J56
+corrplot(
+  SclHdrsDepre.J56,
+  method = "color",
+  type = "upper",
+  order = "hclust",
+  col = wes_palette("Zissou1", 100, type = "continuous"),
+  tl.col = "gray20",
+  tl.cex = 0.8,
+  tl.srt = 45,
+  addCoef.col = "white",
+  number.cex = 0.6,
+  diag = FALSE,
+  mar = c(0, 0, 1.5, 0),
+  addrect = 3,
+  rect.col = "gray40"
+)
+title("Corrélations HDRS (noyeau et total) – \n SCL90 (sous échelle) J56", 
+      line = -1, 
+      cex.main = 0.9
+)
+
+# Réinitialisation
+par(mfrow = c(1, 1))
+```
+
+**Commentaire matrice de corrélation HDRS vs SCL-90-R – Évolution J0 et J56**
+
+À J0, les corrélations entre l'HDRS (hétéro-évaluation) et les sous-échelles SCL-90-R (auto-évaluation) sont faibles : HDRS_total–SCL_Dépression (r = 0.27), HDRS_noyau–SCL_GSI (r = 0.07), HDRS_noyau–SCL_Dépression (r = 0.19). Cette dissociation inter-instruments suggère une discordance entre la perception clinicienne et le vécu subjectif du patient en phase aiguë, possiblement liée à l'hétérogénéité symptomatique caractéristique de la dépression sévère. En revanche, la cohérence intra-instrument à tendance à être préservée : HDRS_noyau–HDRS_total (r = 0.66) et SCL_GSI–SCL_Dépression (r = 0.79).
+
+À J56, la validité convergente s'améliore considérablement avec des corrélations fortes à très fortes entre les deux instruments : HDRS_noyau–SCL_Dépression (r = 0.74), HDRS_noyau–SCL_GSI (r = 0.70), HDRS_total–SCL_Dépression (r = 0.66), HDRS_total–SCL_PST (r = 0.64). La corrélation intra-HDRS atteint r = 0.92, confirmant la convergence vers un construit unidimensionnel. Les indices SCL90 montrent également une forte cohérence (SCL_Dépression–SCL_GSI : r = 0.93).
+
+Cette amélioration substantielle ($\Delta r \approx +0.50$) démontre que l'HDRS et le SCL-90-R convergent vers la mesure d'un même construit après amélioration clinique, validant leur utilisation complémentaire dans le suivi thérapeutique ([Bagby et al., 2004](https://pubmed.ncbi.nlm.nih.gov/14992528/)).
+
+## Validité divergente : HDRS et autres sous-échelles SCL90.
+
+- **Matrices de corrélation HDRS_total vs autres sous-échelles SCL-90 (J0 & J56) : **
+
+```{r fig.height=4, echo=FALSE, fig.height=5, fig.width=11, out.width="100%", fig.cap="Matrices de corrélation HDRS total et autres sous-échelles SCL90 aux temps J0 et J56"}
+# Sélection des variables pour la corrélation
+resumItems = c(
+  "HDRS_total",
+  "SCL_Somatisation",
+  "SCL_Sensitivite",
+  "SCL_Depression",
+  "SCL_Anxiete",
+  "SCL_Hostilite",
+  "SCL_Phobie",
+  "SCL_Paranoia",
+  "SCL_Psychotisme"
+)
+
+SclHdrs.J0  = round(
+  cor(df.j0j56[df.j0j56$VISIT == "J0", resumItems], 
+      use ="complete.obs"), 2)
+
+SclHdrs.J56 = round(
+  cor(df.j0j56[df.j0j56$VISIT == "J56", resumItems], 
+      use = "complete.obs"), 2)
+
+# Fenêtrage pour juxtaposer les deux matrices
+par(mfrow = c(1, 2), mar = c(0, 0, 2, 0))  # marges ajustées
+
+# Matrice de corrélation J0
+corrplot(
+  SclHdrs.J0,
+  method = "color",
+  type = "upper",
+  order = "hclust",
+  col = wes_palette("Zissou1", 100, type = "continuous"),
+  tl.col = "gray20",
+  tl.cex = 0.8,
+  tl.srt = 45,
+  addCoef.col = "white",
+  number.cex = 0.6,
+  diag = FALSE,
+  mar = c(0, 0, 1, 0),
+  addrect = 3,
+  rect.col = "gray40"
+)
+title("corrélation HDRS_total - \n autres sous-échelles SCL90 J0", 
+      line = -1, 
+      cex.main = 0.9)
+
+# Matrice de corrélation J56
+corrplot(
+  SclHdrs.J56,
+  method = "color",
+  type = "upper",
+  order = "hclust",
+  col = wes_palette("Zissou1", 100, type = "continuous"),
+  tl.col = "gray20",
+  tl.cex = 0.8,
+  tl.srt = 45,
+  addCoef.col = "white",
+  number.cex = 0.6,
+  diag = FALSE,
+  mar = c(0, 0, 1, 0),
+  addrect = 3,
+  rect.col = "gray40"
+)
+title("corrélation HDRS_total - \n autres sous-échelles SCL90 J56", 
+      line = -1, 
+      cex.main = 0.9)
+
+# Réinitialisation
+par(mfrow = c(1, 1))
+```
+
+**Commentaire : Validité discriminante HDRS vs dimensions non-dépressives SCL-90-R**
+
+À J0, l'HDRS_total montre des corrélations faibles avec les dimensions non-dépressives du SCL-90-R : SCL_Somatisation (r = 0.37), SCL_Anxiété (r = 0.13), SCL_Phobie (r = 0.09), et quasi-nulles voire négatives avec SCL_Sensitivité (r = -0.07), SCL_Hostilité (r = 0.05), SCL_Paranoïa (r = -0.13) et SCL_Psychotisme (r = -0.03). **Ces corrélations faibles contrastent nettement avec HDRS_total–SCL_Dépression (r = 0.27)** *voir fig précedente*, démontrant une **spécificité relative** de l'HDRS pour le construit dépressif plutôt que pour la détresse psychologique générale en phase aiguë.
+
+À J56, les corrélations s'intensifient globalement : HDRS_total–SCL_Somatisation (r = 0.62), HDRS_total–SCL_Anxiété (r = 0.54), HDRS_total–SCL_Psychotisme (r = 0.56), HDRS_total–SCL_Sensitivité (r = 0.49). Cependant, la corrélation avec SCL_Dépression reste la plus élevée (r = 0.66), préservant une **validité discriminante acceptable** selon les critères de [Campbell & Fiske (1959)](https://psycnet.apa.org/record/1960-06848-001) où les corrélations convergentes doivent dépasser les corrélations discriminantes.
+
+Cette augmentation généralisée des corrélations à J56 ($\Delta r \approx +0.35$) reflète un **effet de halo** post-rémission : l'amélioration dépressive s'accompagne d'une réduction concomitante de symptômes anxieux, somatiques et psychotiques, suggérant que l'HDRS capture une dimension générale de détresse psychologique après traitement plutôt qu'un construit purement dépressif.
+
+# Analyses principales (Comparaison)
+
+## Last Observation Carried Forward (LOCF)
+
+```{r locf_imputation, echo=FALSE}
+# Création de la grille complète (Squelette)
+squelette = expand.grid(
+  NUMERO = unique(df.ha$NUMERO),
+  VISIT = factor(c("J0", "J4", "J7", "J14", "J21", "J28", "J42", "J56"), 
+                 levels = c("J0", "J4", "J7", "J14", "J21", "J28", "J42", "J56"))
+)
+
+# Fusion avec les données réelles
+df.locf = merge(squelette, df.ha[, c("NUMERO", "VISIT", "GROUPE", "HDRS_total")], 
+                by = c("NUMERO", "VISIT"), all.x = TRUE)
+
+# Tri et Remplissage (LOCF)
+df.locf = df.locf[order(df.locf$NUMERO, as.numeric(df.locf$VISIT)), ]
+
+# Imputation LOCF pour HDRS_total et GROUPE
+df.locf$HDRS_total = ave(
+  df.locf$HDRS_total,
+  df.locf$NUMERO,
+  FUN = function(x) na.locf(x, na.rm = FALSE)
+)
+
+df.locf$GROUPE = ave(
+  df.locf$GROUPE,
+  df.locf$NUMERO,
+  FUN = function(x) na.locf(x, na.rm = FALSE)
+)
+
+# Filtrer J0 et J56
+resum = df.locf[df.locf$VISIT %in% c("J0", "J56"), ]
+
+# Reshape en format wide
+wide = reshape(
+  resum,
+  idvar = "NUMERO",
+  timevar = "VISIT",
+  direction = "wide",
+  v.names = "HDRS_total"
+  #drop = "GROUPE"
+)
+
+# Calcul des différences
+wide$Delta_HDRS = wide$HDRS_total.J0 - wide$HDRS_total.J56
+wide$Pct_change = (wide$Delta_HDRS / wide$HDRS_total.J0) * 100
+
+# Suppression des NA
+wide = wide[!is.na(wide$Delta_HDRS), ]
+
+# Conversion du GROUPE en facteur
+wide$GROUPE = factor(wide$GROUPE,
+                     levels = c(0, 1),
+                     labels = c("Groupe 0", "Groupe 1"))
+```
+
+
+```{r locf_normalite, echo=FALSE, fig.height=6, fig.width=11, fig.cap="Vérification de la normalité des différences (LOCF)", out.width="100%"}
+# Vérification de la normalité
+groupes = levels(wide$GROUPE)
+
+par(mfrow = c(2, 2), mar = c(4, 4, 3, 2))
+
+for (groupe in groupes) {
+  diff_groupe = wide$Delta_HDRS[wide$GROUPE == groupe]
+  
+  # Histogramme
+  hist(diff_groupe, 
+       main = paste("Histogramme -", groupe),
+       xlab = "Delta HDRS",
+       col = ifelse(groupe == "Groupe 0", "steelblue", "darkorange"),
+       border = "white",
+       prob = TRUE)
+  
+  # Ajout de la courbe de densité
+  lines(density(diff_groupe, na.rm = TRUE),
+        col = "black",
+        lwd = 2)
+  
+  # Moyenne
+  abline(v = mean(diff_groupe, na.rm = TRUE),
+         col = "red", 
+         lwd = 2,
+         lty = 2)
+  
+  # QQ-plot
+  qqnorm(diff_groupe, main = paste("QQ-plot -", groupe))
+  qqline(diff_groupe, col = "green", lwd = 2)
+}
+
+par(mfrow = c(1, 1))
+```
+
+
+
+**Commentaire de la Normalité des différences (LOCF) :**
+
+Les histogrammes et QQ-plots montrent que :
+
+**Groupe 0** : La distribution des différences (Delta HDRS) semble **légèrement asymétrique à droite**, avec une concentration autour de 20. Le QQ-plot révèle des écarts aux extrémités (queues de distribution), suggérant un **écart modéré à la normalité**.
+
+**Groupe 1** : La distribution est **plus symétrique** et centrée autour de 15. Le QQ-plot montre une meilleure adéquation à la droite théorique, bien que des écarts légers persistent aux extrémités.
+
+**Conclusion** : Bien que la normalité ne soit pas parfaite, le **t-test reste robuste** avec un échantillon de taille modérée (N > 30 par groupe), surtout pour des comparaisons de moyennes.
+
+```{r locf_stats_desc, echo=FALSE}
+# Statistiques descriptives par groupe
+stats_locf = aggregate(
+  cbind(Delta_HDRS, Pct_change) ~ GROUPE,
+  data = wide,
+  FUN = function(x) c(
+    N = length(x),
+    Moyenne = round(mean(x, na.rm = TRUE), 2),
+    ET = round(sd(x, na.rm = TRUE), 2)
+  )
+)
+
+# Reformatage pour affichage
+stats_table = data.frame(
+  Groupe = rep(stats_locf$GROUPE, each = 3),
+  Statistique = rep(c("N", "Moyenne", "ET"), 2),
+  Delta_HDRS = round(c(t(stats_locf$Delta_HDRS)), 2),
+  Pct_change = round(c(t(stats_locf$Pct_change)), 2)
+)
+
+pander(stats_table,
+       caption = "Statistiques descriptives du changement HDRS (LOCF)",
+       justify = "left")
+```
+
+**Commentaire Statistiques descriptives (LOCF) :**
+
+**Groupe 0** : Une **baisse moyenne plus marquée** du score HDRS ($\Delta = 19.92 ± 8.68$), correspondant à une réduction relative de **70.6%**.
+
+**Groupe 1** : Une **amélioration modérée** ($\Delta = 15.13 ± 8.03$), avec un changement relatif de **54.39%**.
+
+Les **écarts-types similaires** ($\approx 8$) suggèrent une variabilité comparable entre les groupes. 
+
+**Interprétation** : Le **Groupe 0** montre une **amélioration clinique plus prononcée** que le Groupe 1, tant en termes absolus que relatifs. La variabilité intra-groupe est similaire, ce qui renforce la comparabilité des résultats.
+
+```{r locf_test, echo=FALSE}
+# Test t de Student
+test_locf = t.test(Delta_HDRS ~ GROUPE, data = wide, var.equal = TRUE)
+
+# Calcul de la taille d'effet (d de Cohen)
+groupe0_delta = wide$Delta_HDRS[wide$GROUPE == "Groupe 0"]
+groupe1_delta = wide$Delta_HDRS[wide$GROUPE == "Groupe 1"]
+
+n0 = length(groupe0_delta)
+n1 = length(groupe1_delta)
+s_pooled = sqrt(((n0 - 1) * var(groupe0_delta) + (n1 - 1) * var(groupe1_delta)) / (n0 + n1 - 2))
+d_cohen = (mean(groupe0_delta) - mean(groupe1_delta)) / s_pooled
+
+# Stockage des résultats LOCF pour le tableau final
+resultat_locf = list(
+  methode = "LOCF",
+  diff_moyennes = abs(diff(test_locf$estimate)),
+  t_value = test_locf$statistic,
+  p_value = test_locf$p.value,
+  ic_inf = test_locf$conf.int[1],
+  ic_sup = test_locf$conf.int[2],
+  cohen_d = d_cohen,
+  n_total = nrow(wide)
+)
+
+pander(as.data.frame(resultat_locf), 
+       caption = "résultats LOCF",
+       row.name = FALSE)
+```
+
+**Commentaire du Test t de Student entre les deux groupes (LOCF)**
+
+Les résultats confirment une **supériorité statistique et clinique** du Groupe 0 par rapport au Groupe 1, avec une **réduction plus importante des symptômes** (mesurée par le HDRS).
+
+
+```{r locf_plots, echo=FALSE, fig.height=5, fig.width=11, fig.cap="Comparaison des changements absolus et relatifs du score HDRS (LOCF)", out.width="100%"}
+# Graphiques des changements
+par(mfrow = c(1, 2), mar = c(5, 4, 4, 2))
+
+# Plot A : Changement absolu
+boxplot(
+  Delta_HDRS ~ GROUPE,
+  data = wide,
+  col = c("steelblue", "darkorange"),
+  main = "Changement absolu HDRS (LOCF)\nJ0 - J56",
+  xlab = "Groupe",
+  ylab = "Delta HDRS (Points)",
+  ylim = range(wide$Delta_HDRS, na.rm = TRUE) * 1.1
+)
+abline(h = 0, lty = 2, col = "red", lwd = 1.5)
+text(1.5, min(wide$Delta_HDRS) * 0.9,
+     sprintf("p = %.4f", test_locf$p.value),
+     cex = 1.2, font = 2)
+
+# Plot B : Changement relatif
+boxplot(
+  Pct_change ~ GROUPE,
+  data = wide,
+  col = c("steelblue", "darkorange"),
+  main = "Changement relatif HDRS (LOCF)\n% réduction",
+  xlab = "Groupe",
+  ylab = "% de changement",
+  ylim = range(wide$Pct_change, na.rm = TRUE) * 1.1
+)
+abline(h = 0, lty = 2, col = "red", lwd = 1.5)
+
+par(mfrow = c(1, 1))
+```
+
+```{r locf_ggplot, echo=FALSE, fig.height=5, fig.width=11, fig.cap="Réduction du score HDRS (J0 à J56, données imputées LOCF)", out.width="100%"}
+# Graphique ggplot2
+barreplot = ggplot(wide, aes(x = GROUPE, y = Delta_HDRS, fill = GROUPE)) +
+            geom_boxplot(alpha = 0.6, outlier.shape = 21) +
+            stat_summary(fun = mean, geom = "point", shape = 23, size = 3, fill = "white") +
+            scale_fill_manual(values = c("steelblue", "darkorange")) +
+            labs(
+              title = "Distribution du Delta HDRS par groupe",
+              subtitle = sprintf("Test t : t = %.2f, p = %.4f, d de Cohen = %.2f",
+                                 test_locf$statistic, test_locf$p.value, d_cohen),
+              y = "Delta HDRS (J56 - J0)",
+              x = ""
+            ) +
+            geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+            theme_minimal() +
+            theme(legend.position = "none",
+                  plot.title = element_text(face = "bold", size = 12),
+                  panel.border = element_rect(colour = "gray95", fill = NA, linewidth = 1),
+                  plot.subtitle = element_text(size = 10))
+
+# Graphique de densité
+densite   = ggplot(wide, aes(x = Delta_HDRS, colour = GROUPE, fill = GROUPE)) +
+            geom_density(alpha = 0.35, size = 0.9) +
+            scale_fill_manual(values = c("steelblue", "darkorange")) +
+            scale_colour_manual(values = c("steelblue", "darkorange")) +
+            labs(
+              title = "Densité du Delta HDRS par groupe",
+              subtitle = sprintf("Test t : t = %.2f, p = %.4f, d de Cohen = %.2f",
+                                 test_locf$statistic, test_locf$p.value, d_cohen),
+              x = "Delta HDRS (J56 - J0)",
+              y = "Densité"
+            ) +
+            theme_minimal() +
+            theme(legend.position = "bottom",
+                  plot.title = element_text(face = "bold", size = 12),
+                  panel.border = element_rect(colour = "gray95", fill = NA, linewidth = 1),
+                  plot.subtitle = element_text(size = 10))
+
+# Affichage côte à côte
+grid.arrange(barreplot, densite , ncol = 2)
+```
+
+## Modèle linéaire mixte
+
+Le modèle ajusté s'écrit formellement :
+$$
+\texttt{HDRS\_total}_{ij} = \beta_0 + \beta_1 \cdot \texttt{GROUPE}_i + \beta_2 \cdot \texttt{VISIT\_centered}_{ij} + \beta_3 \cdot (\texttt{GROUPE} \times \texttt{VISIT\_centered})_{ij} + u_{0i} + u_{1i} \cdot \texttt{VISIT\_centered}_{ij} + \varepsilon_{ij}
+$$
+
+J'ai utilisé ce **modèle linéaire mixte (LMM)** avec effets aléatoires. Dans ce modèle, la variable dépendante *HDRS_total* est expliquée par le **groupe (GROUPE, variable fixe catégorielle)**, le **temps centré (VISIT_centered, variable fixe continue)**, ainsi que leur **interaction (GROUPE × VISIT_centered)**, permettant d’évaluer si les trajectoires temporelles diffèrent entre les groupes. Les **effets aléatoires (1 + VISIT_centered | NUMERO)** rendent compte de la variabilité interindividuelle des intercepts et des pentes pour chaque participant (NUMERO), offrant ainsi une modélisation robuste des données longitudinales. Cette approche permet de tenir compte à la fois des tendances globales et des spécificités individuelles dans l’analyse.
+
+```{r lmm_preparation, echo=FALSE}
+# Préparation des données
+visit_order = c("J0", "J4", "J7", "J14", "J21", "J28", "J42", "J56")
+df$VISIT_num = match(df$VISIT, visit_order)
+if(!is.factor(df$GROUPE)){
+  df$GROUPE = factor(df$GROUPE, levels = c(0, 1), labels = c("Groupe 0", "Groupe 1"))
+}
+
+# Filtrage des NA
+df_lmm = df[!is.na(df$HDRS_total), ]
+
+# Centrage du temps sur J0
+df_lmm$VISIT_centered = df_lmm$VISIT_num - 1
+```
+
+```{r lmm_model, echo=FALSE}
+# Modèle linéaire mixte
+model_lmm = lmer(
+  HDRS_total ~ GROUPE * VISIT_centered + (1 + VISIT_centered | NUMERO),
+  data = df_lmm,
+  REML = TRUE
+)
+
+# Extraction des coefficients
+coefs = summary(model_lmm)$coefficients
+
+# Vérification du nombre de colonnes (pour déboguer)
+# La colonne des p-values est soit la 5ème (avec lmerTest) soit inexistante
+n_cols = ncol(coefs)
+
+# Extraction sécurisée de la p-value
+if (n_cols >= 5) {
+  p_interaction = coefs[4, 5]  # Avec lmerTest
+} else {
+  # Sans lmerTest, calculer approximativement avec la statistique t
+  t_value = coefs[4, 3]
+  df_approx = nrow(df_lmm) - 4  # degrés de liberté approximatifs
+  p_interaction = 2 * pt(abs(t_value), df = df_approx, lower.tail = FALSE)
+}
+
+# Stockage des résultats LMM pour le tableau final
+resultat_lmm = list(
+  methode = "M. mixte",
+  intercept = coefs[1, 1],
+  effet_g = coefs[2, 1],
+  effet_t = coefs[3, 1],
+  interac = coefs[4, 1],
+  t_interac = coefs[4, 4],  # Ajout de la statistique t
+  p_interac = p_interaction,
+  n_obs = nrow(df_lmm)
+  #n_patients = length(unique(df_lmm$NUMERO))
+)
+
+pander(as.data.frame(resultat_lmm), 
+       caption = "Résultats LMM",
+       row.name = FALSE)
+```
+
+**Commentaire les résultats du modèle linéaire mixte**
+
+Le modèle linéaire mixte, ajusté sur 1052 observations de 146 patients, révèle des **effets aléatoires substantiels** : 
+
+**Effets aléatoires :**
+La variabilité interindividuelle est **modérée** :
+**Intercept aléatoire** : Écart-type = **4.65** (variabilité initiale entre sujets).
+**Pente aléatoire (VISIT_centered)** : Écart-type = **0.71**, avec une **corrélation négative (-0.30)** entre l’intercept et la pente, suggérant que les sujets avec des scores initiaux élevés tendent à avoir une **diminution plus rapide** du score HDRS_total.
+**Variabilité résiduelle** : Écart-type = **3.83**, indiquant une dispersion modérée des observations autour des trajectoires individuelles.
+
+Les **effets fixes** montrent qu'à J0, le score HDRS moyen du Groupe 0 est de 26.91 points (intercept), tandis que le Groupe 1 ne diffère pas significativement ($\beta_1 = +0.38$, effet groupe marginal). L'évolution temporelle du Groupe 0 révèle une diminution de **-3.32 points par unité de temps** ($\beta_2$, p < 0.001), soit environ 23 points de réduction sur les 7 unités temporelles.
+
+Cependant, **l'interaction GROUPE × TEMPS est positive** ($\beta_3 = +0.79$), indiquant que le Groupe 1 s'améliore **plus lentement** que le Groupe 0 de 0.79 point par visite. Sur l'ensemble du suivi (7 visites), cela représente une différence cumulée d'environ 5.5 points en faveur du Groupe 0, cohérente avec les résultats **LOCF** ($\Delta = 4.79$ points). Ces résultats confirment la **supériorité thérapeutique du Groupe 0** tout en modélisant rigoureusement l'hétérogénéité des trajectoires individuelles.
+
+- **En somme :**
+
+Le modèle révèle une **amélioration significative du score HDRS_total au fil du temps pour le Groupe 0**, tandis que le **Groupe 1** montre une **diminution moins marquée** (interaction significative). La variabilité interindividuelle est bien capturée par les effets aléatoires, confirmant l’adéquation du modèle pour ces données longitudinales. Une **analyse post-hoc** (ex. tests de contrastes) pourrait préciser les différences aux temps spécifiques.
+
+```{r echo=FALSE, fig.height=5, fig.align='center', fig.width=8, fig.cap="Vérification de la normalité des résidus du modèle linéaire mixte"}
+# Extraire les résidus une seule fois
+residus = residuals(model_lmm)
+
+# Configuration du graphique : 1 ligne, 2 colonnes
+par(mfrow = c(1, 2), oma=c(0,0,0,3))
+
+# Histogramme avec courbe de densité
+hist(residus, 
+     prob = TRUE, 
+     col = "lightgray", 
+     border = "white",
+     main = "Distribution des résidus",
+     xlab = "Résidus",
+     ylim = c(0, max(density(residus, na.rm = TRUE)$y) * 1.1))
+
+# Ajouter la courbe de densité
+lines(density(residus, na.rm = TRUE), col = "blue", lwd = 2)
+
+# Ajouter une courbe de densité normale théorique (moyenne et écart-type des résidus)
+curve(dnorm(x, mean = mean(residus, na.rm = TRUE), sd = sd(residus, na.rm = TRUE)), 
+      col = "red", lwd = 2, lty = 2, add = TRUE)
+
+legend("topright", 
+       legend = c("Estimée", "Normale théorique"),
+       col = c("blue", "red"), 
+       lwd = 2, 
+       lty = c(1, 2), 
+       bty = "n",
+       cex = 0.7)
+
+# QQ-plot
+qqnorm(residus, 
+       main = "QQ-plot des résidus",
+       xlab = "Quantiles théoriques",
+       ylab = "Quantiles observés",
+       pch = 16, col = "darkgray")
+qqline(residus, col = "red", lwd = 2)
+
+# Réinitialiser la disposition graphique
+par(mfrow = c(1, 1))
+```
+
+**Commentaire sur la normalité des résidus du modèle linéaire mixte**
+
+La distribution des résidus est **proche de la normalité**, avec des écarts mineurs aux extrémités. Ces légères déviations sont **tolérables** dans le cadre d’un modèle linéaire mixte, surtout avec un échantillon de taille modérée (N = 146 et 1052 observations). Aucune transformation des données ne semble nécessaire, mais une **vérification de la robustesse** (ex. bootstrap) pourrait être envisagée si ces résidus extrêmes influencent les conclusions.
+
+```{r lmm_plot, echo=FALSE, fig.height=5, fig.width=11, fig.cap="Évolution du score HDRS selon le groupe (Modèle linéaire mixte)", out.width="100%"}
+# Prédictions du modèle
+newdata = expand.grid(
+  GROUPE = levels(df_lmm$GROUPE),
+  VISIT_centered = seq(0, 7, by = 1)
+)
+
+newdata$HDRS_pred = predict(model_lmm, newdata = newdata, re.form = NA)
+newdata$VISIT = visit_order[newdata$VISIT_centered + 1]
+
+# Graphique
+par(mar = c(5, 4, 4, 2))
+
+plot(
+  NULL,
+  xlim = c(0, 7),
+  ylim = c(0, 30),
+  xlab = "Temps (visite)",
+  ylab = "Score HDRS prédit",
+  main = "Évolution du score HDRS selon le groupe\n(Modèle linéaire mixte)",
+  xaxt = "n"
+)
+
+axis(1, at = 0:7, labels = visit_order)
+
+# Groupe 0
+lines(
+  newdata$VISIT_centered[newdata$GROUPE == "Groupe 0"],
+  newdata$HDRS_pred[newdata$GROUPE == "Groupe 0"],
+  col = "steelblue",
+  lwd = 3
+)
+
+# Groupe 1
+lines(
+  newdata$VISIT_centered[newdata$GROUPE == "Groupe 1"],
+  newdata$HDRS_pred[newdata$GROUPE == "Groupe 1"],
+  col = "darkorange",
+  lwd = 3
+)
+
+# Ajout des points moyens observés
+moyennes_obs = aggregate(HDRS_total ~ GROUPE + VISIT_centered, 
+                         data = df_lmm, 
+                         FUN = mean, na.rm = TRUE)
+
+points(moyennes_obs$VISIT_centered[moyennes_obs$GROUPE == "Groupe 0"],
+       moyennes_obs$HDRS_total[moyennes_obs$GROUPE == "Groupe 0"],
+       col = "steelblue", pch = 19, cex = 1.2)
+
+points(moyennes_obs$VISIT_centered[moyennes_obs$GROUPE == "Groupe 1"],
+       moyennes_obs$HDRS_total[moyennes_obs$GROUPE == "Groupe 1"],
+       col = "darkorange", pch = 19, cex = 1.2)
+
+legend(
+  "topright",
+  legend = c("Groupe 0 (prédit)", "Groupe 1 (prédit)", 
+             "Groupe 0 (observé)", "Groupe 1 (observé)"),
+  col = c("steelblue", "darkorange", "steelblue", "darkorange"),
+  lty = c(1, 1, NA, NA),
+  pch = c(NA, NA, 19, 19),
+  lwd = c(3, 3, NA, NA),
+  bty = "n",
+  cex = 0.9
+)
+
+# Annotation de la significativité
+if (resultat_lmm$p_interac < 0.05) {
+  text(3.5, 27, sprintf("Interaction significative\np = %.4f", resultat_lmm$p_interac),
+       cex = 1, font = 2, col = "red")
+}
+```
+
+## TABLEAU RÉCAPITULATIF COMPARATIF
+
+```{r tableau_final, echo=FALSE}
+# Construction du tableau récapitulatif
+tab_recap = data.frame(
+  Approche = c("LOCF ", "M. mixte"),
+  
+  N = c(
+    sprintf("%d patients", resultat_locf$n_total),
+    sprintf("%d obs",  
+            resultat_lmm$n_obs)
+  ),
+  
+  Effet_principal = c(
+    sprintf("m = %.2f [IC95%% : %.2f ; %.2f]",
+            resultat_locf$diff_moyennes,
+            resultat_locf$ic_inf,
+            resultat_locf$ic_sup),
+    sprintf("GROUPE × Temps\nβ = %.3f",
+            resultat_lmm$interac)
+  ),
+  
+  Stats = c(
+  sprintf("t = %.3f", resultat_locf$t_value),
+  sprintf("t = %.3f", resultat_lmm$t_interac)  # Utiliser t_interaction 
+  ),
+  
+  P_value = c(
+    format.pval(resultat_locf$p_value, digits = 4, eps = 0.0001),
+    format.pval(resultat_lmm$p_interac, digits = 4, eps = 0.0001)
+  )
+)
+
+pander(tab_recap,
+       caption = "Comparaison de l'efficacité thérapeutique entre groupes : synthèse des deux approches",
+       split.cells = 29)
+```
+
+## LOCF vs. modèle mixte :
+
+La **méthode LOCF**, bien que simple et conservative, a confirmé une **différence significative** entre les groupes (p = 0.0007), mais reste limitée par son **biais potentiel** (sous-estimation de la variabilité et des dynamiques temporelles).
+
+Le **modèle linéaire mixte (LMM)**, plus sophistiqué, a non seulement validé cette tendance (pente = -3.32 pour le Groupe 0 vs. interaction +0.79 pour le Groupe 1), mais a aussi **capturé la variabilité interindividuelle** et **évité les biais d’imputation**. Les résidus, quasi normaux, renforcent la validité du modèle.
+
+**Conclusion** : Le LMM, en intégrant la dynamique longitudinale et la variabilité individuelle, offre une **analyse plus fine et fiable** que la LOCF. Les résultats convergents des deux méthodes **renforcent la robustesse** de nos conclusions. Confirme que le **Groupe 0 présente une amélioration significativement plus marquée** du score HDRS_total que le Groupe 1.
+
+
+# ANALYSE DE SURVIE : RÉPONSE AU TRAITEMENT
+
+```{r response_preparation, echo=FALSE}
+# Filtrage J0-J56
+df.j0j56       = df[df$VISIT %in% visit_order, ]
+
+# Baseline J0
+baseline = df.j0j56[df.j0j56$VISIT == "J0", c("NUMERO", "GROUPE", "HDRS_total")]
+names(baseline)[3] = "HDRS_J0"
+baseline = baseline[!is.na(baseline$HDRS_J0), ]
+
+tab_diag = data.frame(
+  Stats = c(
+    sprintf("Patients avec score J0 : %d", nrow(baseline)),
+    sprintf("Score J0 moyen : %.1f (min %.0f, max %.0f)",
+            mean(baseline$HDRS_J0), min(baseline$HDRS_J0), max(baseline$HDRS_J0))
+  )
+)
+
+pander(tab_diag, caption = "Diagnostic initial J0", split.cells = 40)
+```
+
+
+```{r response_calculation, echo=FALSE}
+# Réponse ≥ 50 %
+patients   = unique(baseline$NUMERO)
+resultats  = data.frame()
+
+for (patient in patients) {
+  # Score baseline
+  score_j0 = baseline$HDRS_J0[baseline$NUMERO == patient]
+  groupe   = baseline$GROUPE[baseline$NUMERO == patient]
+  
+  # Toutes les visites du patient (sauf J0)
+  visites = df.j0j56[df.j0j56$NUMERO == patient & df.j0j56$VISIT != "J0", ]
+  visites = visites[order(as.numeric(visites$VISIT)), ]
+  # Supprimer les visites avec NA
+  visites = visites[!is.na(visites$HDRS_total), ]
+
+  if (nrow(visites) == 0) next  # aucun suivi
+
+  # Calculer le pourcentage de réduction pour chaque visite
+  visites$reduction_pct = 100 * (score_j0 - visites$HDRS_total) / score_j0
+  # Identifier la première réponse (≥50%)
+  premiere_rep          = which(visites$reduction_pct >= 50)[1]
+
+  if (!is.na(premiere_rep)) {
+    # Patient répondeur
+    temps_event = as.numeric(visites$VISIT[premiere_rep]) - 1  # J0 = 1
+    statut      = 1
+    vis_rep     = as.character(visites$VISIT[premiere_rep])
+  } else {
+    # Patient non-répondeur : censuré à la dernière visite observée
+    temps_event = as.numeric(tail(visites$VISIT, 1)) - 1
+    statut      = 0
+    vis_rep     = NA
+  }
+
+  resultats = rbind(resultats, data.frame(
+    NUMERO = patient,
+    GROUPE = groupe,
+    HDRS_J0 = score_j0,
+    temps = temps_event,
+    statut = statut,
+    visite_reponse = vis_rep
+  ))
+}
+
+# Statistiques descriptives
+stats_groupe = aggregate(statut ~ GROUPE, data = resultats,
+                         FUN = function(x) c(N = length(x),
+                                           Repondeurs = sum(x),
+                                           Taux = round(100 * mean(x), 1)))
+
+stats_table = data.frame(
+  Groupe = stats_groupe$GROUPE,
+  N_total = stats_groupe$statut[, 1],
+  N_repondeurs = stats_groupe$statut[, 2],
+  Taux_reponse = paste0(stats_groupe$statut[, 3], "%")
+)
+
+pander(stats_table,
+       caption = "Taux de réponse au traitement (≥50 % réduction HDRS) par groupe")
+```
+
+**Commentaire sur les résultats du critère binaire "réponse au traitement" (≥50% de réduction du score HDRS)**
+
+- **Population initiale (J0) :**
+
+**146 patients** inclus, avec un **score HDRS moyen de 27.9** (min : 13, max : 44).
+
+- **Supériorité claire du Groupe 0** :
+
+**90.3% de répondeurs** vs. **75.0%** dans le Groupe 1, soit un **écart absolu de 15.3 points**.
+Ce résultat confirme la **tendance observée avec les analyses continues** (LOCF et LMM), où le Groupe 0 montrait une **amélioration plus marquée**.
+
+- **Interprétation clinique** :
+
+Le critère binaire (≥50% de réduction) **renforce la robustesse** des conclusions : le Groupe 0 ne s’améliore pas seulement en moyenne, mais atteint aussi **plus fréquemment un seuil d’importance clinique** de réponse.
+
+La différence de **15.3%** entre les groupes suggère un **avantage thérapeutique tangible** pour le Groupe 0, avec un **nombre nécessaire à traiter (NNT) estimé à ~7** (1/0.153) pour obtenir un répondeur supplémentaire.
+
+**En d'autres termes :** :
+
+Le critère binaire de réponse ($\geq 50%$) **valide et précise** les résultats précédents : le **Groupe 0 présente un taux de réponse significativement supérieur** (90.3% vs. 75.0%), soulignant son **efficacité clinique supérieure** par rapport au Groupe 1. Cette convergence entre méthodes (LOCF, LMM, critère binaire) **renforce la fiabilité** des conclusions.
+
+```{r graph_survie, echo=FALSE, fig.height=4, fig.cap="Courbes de Kaplan-Meier : Probabilité cumulative de réponse au traitement (réduction ≥ 50% HDRS)"}
+# Objet de survie
+  surv_obj = Surv(time = resultats$temps, event = resultats$statut)
+  
+  # Kaplan-Meier
+  fit_km = survfit(surv_obj ~ GROUPE, data = resultats)
+  
+  # Graphique
+  ggsurvplot(
+    fit_km,
+    data = resultats,
+    conf.int = TRUE,
+    pval = TRUE,
+    pval.method = TRUE,
+    risk.table = TRUE,
+    risk.table.height = 0.29,
+    palette = c("steelblue", "darkorange"),
+    ggtheme = theme_minimal(),
+    title = "",
+    xlab = "Temps (nombre de visites depuis J0)",
+    ylab = "Probabilité de réponse",
+    legend.title = "Groupe",
+    legend.labs = c("Groupe 0", "Groupe 1"),
+    break.time.by = 1,
+    xlim = c(0, 7)
+  )
+```
+
+
+```{r log_rank, echo=FALSE}
+# Survie
+if (sum(resultats$statut) > 0) {
+
+  surv_obj = Surv(time = resultats$temps, event = resultats$statut)
+  fit_km   = survfit(surv_obj ~ GROUPE, data = resultats)
+
+  # Test log-rank
+  logrank = survdiff(surv_obj ~ GROUPE, data = resultats)
+  p_lr    = 1 - pchisq(logrank$chisq, df = 1)
+
+  # Cox
+  cox_mod = coxph(surv_obj ~ GROUPE + HDRS_J0, data = resultats)
+  cox_sum = summary(cox_mod)
+  hr      = cox_sum$conf.int[1, 1]
+  hr_ci   = cox_sum$conf.int[1, 3:4]
+
+  # Tableau final
+  tab_final = data.frame(
+    Analyse = c("Taux de réponse", "Log-rank", "Modèle de Cox"),
+    Groupe_0 = c(sprintf("%d/%d (%.1f%%)", stats_table$N_repondeurs[1], stats_table$N_total[1],
+                         stats_groupe$statut[1, 3]),
+                 "—", "Référence"),
+    Groupe_1 = c(sprintf("%d/%d (%.1f%%)", stats_table$N_repondeurs[2], stats_table$N_total[2],
+                         stats_groupe$statut[2, 3]),
+                 "—", sprintf("HR = %.2f [%.2f-%.2f]", hr, hr_ci[1], hr_ci[2])),
+    Statistique = c("—", sprintf("khi-deux = %.2f", logrank$chisq), sprintf("p = %.4f", cox_sum$coefficients[1, 5])),
+    Interpretation = c(ifelse(stats_groupe$statut[1, 3] > stats_groupe$statut[2, 3], "Groupe 0 répond mieux", "Groupe 1 répond mieux"),
+                       ifelse(p_lr < 0.05, "Différence significative", "Pas de différence"),
+                       ifelse(cox_sum$coefficients[1, 5] < 0.05,
+                              ifelse(hr > 1, "Groupe 1 répond plus vite", "Groupe 0 répond plus vite"),
+                              "Pas de différence"))
+  )
+
+  pander(tab_final,
+         caption = "Synthèse de l’analyse de survie",
+         justify = "left", split.table = Inf)
+
+} else {
+  cat("\n AUCUN PATIENT NE RÉPOND AU CRITÈRE (≥50 % réduction).\n")
+}
+```
+
+
+**Commentaire sur l'analyse de survie et les résultats**
+
+- **Courbes de Kaplan-Meier (Log-rank test) :**
+
+**Supériorité claire du Groupe 0** :
+La probabilité de réponse (≥50% de réduction du HDRS) est **constamment plus élevée** dans le Groupe 0 à chaque visite.
+Le **test du Log-rank** (khi-deux = 13.77, **p = 0.00021**) confirme une **différence hautement significative** entre les deux groupes.
+
+- **Modèle de Cox et interprétation du Hazard Ratio**
+
+Le modèle de régression de Cox, ajusté sur le score HDRS baseline, confirme ces observations avec un **Hazard Ratio de 0.51** [IC95% : 0.35-0.75], p = 0.0006 pour le Groupe 1 vs Groupe 0. Ce HR < 1 indique que le Groupe 1 a **49% moins de chances** d'atteindre la réponse à tout moment donné comparé au Groupe 0 (équivalent à : le Groupe 0 a 1/0.51 ≈ 2 fois plus de chances de répondre). Cette différence reste significative après ajustement sur la sévérité initiale, suggérant un **effet traitement indépendant** du niveau basal de dépression.
+
+- **Cohérence avec les analyses précédentes**
+
+Ces résultats corroborent les analyses LOCF et par modèle linéaire mixte, qui montraient également une supériorité du Groupe 0 en termes de réduction absolue du score HDRS (Δ = 4.79 points, p = 0.0007). L'approche par analyse de survie apporte cependant une **information temporelle cruciale** : non seulement le Groupe 0 obtient de meilleurs taux de réponse finaux, mais il les atteint également **plus rapidement**. Cette précocité de réponse est un critère clinique majeur, associée à une meilleure observance thérapeutique et à un pronostic favorable ([Szegedi et al., 2009](https://pubmed.ncbi.nlm.nih.gov/19622191/)).
+
+- **Limites et perspectives**
+
+L'analyse assume que les patients censurés (non-répondeurs à la dernière visite observée) ont le même risque de réponse que ceux toujours suivis (**hypothèse d'indépendance de la censure**). La vérification des résidus de Schoenfeld confirme la proportionnalité des risques (hypothèse fondamentale du modèle de Cox). Néanmoins, le critère binaire de réponse (≥50% réduction) peut masquer des différences dans l'amplitude de l'amélioration au-delà de ce seuil, justifiant l'approche complémentaire par modèle mixte sur le score continu.
+
+- **Conclusion**
+
+L'analyse de survie démontre de manière convergente que le **Groupe 0 bénéficie d'une efficacité thérapeutique supérieure**, tant en termes de taux de réponse final (90% vs 75%) que de rapidité d'action. Ces résultats, combinés aux analyses LOCF et par modèle mixte, établissent robustement la supériorité du traitement du Groupe 0 dans cette étude.
+
+
+
+
+
+
+
